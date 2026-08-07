@@ -73,6 +73,10 @@ let package = Package(
             dependencies: ["ServerFoundationClient"]
         ),
         .testTarget(
+            name: "ServerFoundationVaporTests",
+            dependencies: ["ServerFoundationVapor"]
+        ),
+        .testTarget(
             name: "ServerFoundationTests",
             dependencies: ["ServerFoundation"]
         )

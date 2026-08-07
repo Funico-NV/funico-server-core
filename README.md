@@ -25,7 +25,7 @@ out means importing `ServerFoundation` never drags in URLSession machinery.
 ## What's in them
 
 **`ServerFoundationCore`** — `APIModel`, `APIModelError`, `Query`, `SQLQuery`, plus the shared server
-vocabulary added in 2.1.0: `ServerState`, `ServerJob`, `ServerJobState`, `ServerJobResult`,
+vocabulary: `ServerState`, `ServerJob`, `ServerJobState`, `ServerJobResult`,
 `ServerJobDescriptor`, `ServerJobCapability`.
 
 **`ServerFoundationLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
@@ -36,7 +36,52 @@ let storage = LogStorage()
 LoggingSystem.bootstrap { _ in MemoryLogHandler(storage: storage) }
 ```
 
-**`ServerFoundationVapor`** — `Application.exposeDocumentation`.
+**`ServerFoundationVapor`** — `Application.exposeDocumentation`, and the agent control channel.
+
+### The agent control channel
+
+One line in a managed server's `main`:
+
+```swift
+try await app.enableAgentControl(version: "1.4.16")
+```
+
+A server started by hand has no `FNC_CONTROL_PORT`, so this returns `nil` and changes nothing —
+which is what lets the channel be adopted without changing how anyone runs the server today. Under
+the agent it opens a **second** listener, bound to `127.0.0.1` only:
+
+```
+GET  /control/health    { instanceID, uptime, version, state }
+GET  /control/state     ServerState + [ServerJobStatus]
+GET  /control/jobs      [ServerJobDescriptor]
+POST /control/shutdown  202, then stop
+WS   /control/events    ServerEventEnvelope stream
+```
+
+All require `Authorization: Bearer <token>`, compared in constant time. A server with no job concept
+adopts it by implementing one method — `AgentControlProvider` defaults `jobs()` and `jobStates()` to
+empty, which is right for `funico-scheduler-api-server` and the dashboards.
+
+Four things that are deliberate:
+
+- **A second listener, not routes on the main one.** The main listener is `0.0.0.0`; these routes
+  include one that stops the server, and must not be reachable from off-box.
+- **A half-configured environment throws.** `FNC_CONTROL_PORT` absent means "not under an agent" and
+  stays silent — but port-present-token-missing is a misconfiguration, and binding a shutdown route
+  with no auth on it is not an acceptable way to recover.
+- **Responses are encoded with `AgentControlServer.encoder`, not Vapor's global one.**
+  `ContentConfiguration.global` is process-wide and writable, so a server that installs its own
+  encoder would otherwise silently change what the agent receives. Clients should decode with
+  `AgentControlServer.decoder`. Dates are ISO-8601.
+- **`shutdown` answers 202 before it exits.** A process that vanished mid-request is
+  indistinguishable from a crash, which is precisely the distinction the agent exists to make.
+
+**Security tradeoff, stated plainly.** Loopback is not a trust boundary: any process running as the
+same user can reach `127.0.0.1:<port>`, so the token is doing real work. On Linux
+`/proc/<pid>/environ` is `0400` owner-only and on macOS `ps -E` needs same-user or root, so the token
+is not readable *across* users — but a same-user process can read it. A `0600` Unix domain socket
+would be strictly tighter on Unix; that tightness is what is traded for Windows parity, where
+SwiftNIO's UDS support is unverified and Vapor's server config is hostname/port-shaped.
 
 **`ServerFoundationClient`** — `ResilientWebSocket`, `WebSocketBackoff`, `URL.webSocketURL`.
 
