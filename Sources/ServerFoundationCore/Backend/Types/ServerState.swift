@@ -70,7 +70,7 @@ extension ServerState: RawRepresentable {
     ///
     /// Kept, and deliberately not extended. It carries no version field and no type tag,
     /// and `split(separator: ";")` on a payload that could contain a `;` is a latent parse
-    /// failure — so all *new* traffic uses ``ServerEventEnvelope`` instead, and this stays
+    /// failure — so all *new* traffic uses `ServerEventEnvelope` instead, and this stays
     /// frozen for the three legacy endpoints and for `@AppStorage`.
     public init?(rawValue: String) {
         let components = rawValue.split(separator: ";")

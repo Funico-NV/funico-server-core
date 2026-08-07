@@ -41,6 +41,10 @@ public actor ResilientWebSocket {
     ///   - connectionURL: evaluated before every attempt. Return a URL carrying `?since=` to
     ///     resume a stream; return `nil` to stop reconnecting.
     ///   - headers: sent on the upgrade request. Put the bearer token here.
+    ///   - transport: how connections are opened. Substitutable so reconnection can be tested
+    ///     without starting and killing a real server.
+    ///   - backoff: how long to wait between attempts.
+    ///   - logger: where drops and retries are reported.
     public init(
         connectionURL: @escaping @Sendable () async -> URL?,
         headers: [String: String] = [:],
@@ -56,6 +60,13 @@ public actor ResilientWebSocket {
     }
 
     /// Connects to a fixed URL.
+    ///
+    /// - Parameters:
+    ///   - url: the base URL. Its scheme decides `ws` versus `wss`.
+    ///   - headers: sent on the upgrade request. Put the bearer token here.
+    ///   - transport: how connections are opened.
+    ///   - backoff: how long to wait between attempts.
+    ///   - logger: where drops and retries are reported.
     public init(
         url: URL,
         headers: [String: String] = [:],

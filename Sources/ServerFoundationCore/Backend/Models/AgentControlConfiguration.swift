@@ -20,7 +20,7 @@ public struct AgentControlConfiguration: Sendable, Hashable {
     public static let tokenKey = "FNC_CONTROL_TOKEN"
     public static let agentURLKey = "FNC_AGENT_URL"
 
-    /// Loopback. Deliberately not configurable to `0.0.0.0` — see ``AgentControlServer``.
+    /// Loopback. Deliberately not configurable to `0.0.0.0` — see `AgentControlServer`.
     public static let defaultHost = "127.0.0.1"
 
     public let instanceID: String

@@ -40,8 +40,10 @@ public struct WebSocketBackoff: Sendable, Hashable {
 
     /// The delay to wait before `attempt`.
     ///
-    /// - Parameter jitter: injectable so the distribution can be tested deterministically.
-    ///   Returns a value in `0...1` that scales the ceiling.
+    /// - Parameters:
+    ///   - attempt: zero-based retry count.
+    ///   - jitter: injectable so the distribution can be tested deterministically. Returns a value
+    ///     in `0...1` that scales the ceiling; anything outside that range is clamped.
     public func delay(
         forAttempt attempt: Int,
         jitter: @Sendable () -> Double = { Double.random(in: 0...1) }

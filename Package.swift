@@ -23,6 +23,7 @@ let package = Package(
         // 1.11.0 is the floor, not a preference: `LogEvent` and the `log(event:)` LogHandler
         // requirement were introduced there. `MemoryLogHandler` does not compile below it.
         .package(url: "https://github.com/apple/swift-log.git", from: Version(1,11,0)),
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: Version(1,0,0)),
         .package(url: "https://github.com/vapor/vapor.git", from: Version(4,0,0))
     ],
     targets: [

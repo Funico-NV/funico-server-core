@@ -13,7 +13,7 @@ import Foundation
 /// maps *every* finished job to `.canceled`, so a job that succeeded and a job that blew up
 /// are displayed identically — "Canceled" — and the user has no way to tell them apart.
 ///
-/// The distinction rides on ``ServerEventEnvelope``. It cannot ride on the legacy
+/// The distinction rides on `ServerEventEnvelope`. It cannot ride on the legacy
 /// `"id;iso8601"` codec, which has exactly one terminal state and no room for a reason.
 public enum ServerJobResult: Sendable, Hashable, Codable {
 

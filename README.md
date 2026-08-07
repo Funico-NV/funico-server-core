@@ -86,15 +86,34 @@ SwiftNIO's UDS support is unverified and Vapor's server config is hostname/port-
 **`ServerFoundationClient`** — `ResilientWebSocket`, `WebSocketBackoff`, `URL.webSocketURL`.
 
 ```swift
+import ServerFoundationClient
+
+let deviceToken = "…"   // from the Keychain
+
 let socket = ResilientWebSocket(
-    connectionURL: { baseURL.appending(queryItems: [.init(name: "since", value: "\(lastSequence)")]) },
+    // https becomes wss; the scheme is derived, never assumed.
+    url: URL(string: "https://box.tailnet.ts.net:5910/v1/events")!,
+    // Header, never the query string — a token in a URL lands in access logs.
     headers: ["Authorization": "Bearer \(deviceToken)"]
 )
 
 for await event in await socket.events() {
-    // .connected / .message / .disconnected(error:retryingIn:)
+    switch event {
+    case .connected:
+        print("live")
+    case .message(let message):
+        if let text = message.text { print(text) }
+    case .disconnected(let error, let retryingIn):
+        // The stream does not end here — this is where a view shows "reconnecting".
+        print("dropped: \(error) — retrying in \(retryingIn)")
+    }
 }
 ```
+
+To resume rather than restart, use the `connectionURL:` initialiser, which is re-evaluated before
+every attempt so the URL can carry `?since=<sequence>`. Note that the closure is `@Sendable` and so
+cannot capture a mutable `var` — hold the cursor in something `Sendable` (an actor, or a lock-backed
+box) and read it inside the closure.
 
 This replaces three defects that ship today in `funico-invoices-api`'s view modifiers: they hardcode
 `ws://` (so anything behind TLS cannot connect), they `break` out of the receive loop on the *first*

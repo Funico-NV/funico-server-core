@@ -26,7 +26,7 @@ extension ServerJobState: Identifiable {
 
     /// - Note: `"canceled"` reconstructs `.finished(.cancelled, …)`, because that is the
     ///   only terminal state the legacy vocabulary has. A run that actually completed or
-    ///   failed is only distinguishable when it arrives via ``ServerEventEnvelope``.
+    ///   failed is only distinguishable when it arrives via `ServerEventEnvelope`.
     public init?(id: String, date: Date) {
         switch id {
         case "executing": self = .executing(since: date)
@@ -101,7 +101,7 @@ extension ServerJobState: RawRepresentable {
     /// Lossy by construction: `.finished(.completed, …)`, `.finished(.cancelled, …)` and
     /// `.finished(.failed(…), …)` all render as `"canceled;<date>"` and all read back as
     /// `.cancelled`. That is not a bug to fix here — extending this string is what
-    /// silently drops a user's persisted `@AppStorage` job selection. ``ServerEventEnvelope``
+    /// silently drops a user's persisted `@AppStorage` job selection. `ServerEventEnvelope`
     /// is the lossless path.
     public init?(rawValue: String) {
         let components = rawValue.split(separator: ";")
