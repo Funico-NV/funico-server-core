@@ -63,8 +63,9 @@ returns `nil`.
 Three defects that ship today in `funico-invoices-api`'s view modifiers:
 
 - They build their URL by concatenating a hardcoded `ws://`, so anything behind TLS — a Cloudflare
-  Tunnel, a reverse proxy — cannot connect at all. ``Foundation/URL/webSocketURL`` derives the
-  scheme and returns `nil` rather than guessing.
+  Tunnel, a reverse proxy — cannot connect at all. `URL.webSocketURL` derives the scheme and
+  returns `nil` rather than guessing. (It is an extension on Foundation's `URL`, so DocC cannot
+  link to it or list it in Topics below.)
 - They `break` out of the receive loop on the **first** error with no retry, so a server restart
   leaves a silently dead view until the user backgrounds and foregrounds the app.
 - They have no way to resume, so a reconnect loses whatever arrived in between.

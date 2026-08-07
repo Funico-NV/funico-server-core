@@ -26,35 +26,41 @@ Write doc comments for the caller, not the compiler. `/// The port.` on a proper
 is noise. Say what it is *for*, what happens at the boundaries, and what will bite — the reason a
 value is what it is belongs in the docs, not only in a commit message.
 
-Build and check them:
+Check them before you commit:
 
 ```bash
-swift package generate-documentation --target ServerFoundationCore
+Scripts/check-documentation.sh
 ```
 
-**A warning is a failure.** DocC reports dangling ` ``Symbol`` ` links and half-documented parameter
-lists as warnings, not errors, so nothing stops you shipping a catalog that no longer resolves. Run
-it for every target you touched and expect zero output:
+Add `--clean` after removing a public symbol — an incremental build recompiles nothing and so emits
+no fresh symbol graphs.
 
-```bash
-for t in ServerFoundationCore ServerFoundationLogging ServerFoundationVapor ServerFoundationClient; do
-  swift package generate-documentation --target "$t" 2>&1 | grep -E "^warning:|^error:"
-done
-```
+**A warning is a failure, and the tool will not tell you so.** DocC reports dangling ` ``Symbol`` `
+links and half-documented parameter lists as *warnings* and still exits 0. The script exists to turn
+those into a non-zero exit; that is its whole job.
 
-Two things that will bite:
+There is deliberately **no `swift-docc-plugin` dependency**. SwiftPM resolves manifest-level
+dependencies for every consumer whether they use them or not, and this package has seven of them.
+The script drives `docc` directly and needs nothing beyond the toolchain. Xcode's
+**Product ▸ Build Documentation** also works.
 
-- **DocC cannot link across modules.** ` ``ServerEventEnvelope`` ` from inside `ServerFoundationCore`
-  is a dangling link — the type is in `ServerFoundationLogging`. Use a plain code span for anything
-  outside the current target.
-- **DocC cannot link to extensions on a dependency's type.** `Application.enableAgentControl` is an
-  extension on Vapor's `Application`, so it cannot appear in `## Topics` and cannot be referenced
-  with double backticks. Document those in prose; `--include-extended-types` does not help.
+Three things that will bite:
 
-`swift-docc-plugin` is a real dependency of this package rather than something you install by hand.
-It costs every consumer two small extra clones (`swift-docc-plugin`, `swift-docc-symbolkit`), which
-is the price of the documentation rule above being checkable in CI instead of aspirational.
-Xcode's **Product ▸ Build Documentation** works without it.
+- **DocC cannot link across modules.** ` ``ServerEventEnvelope`` ` from inside
+  `ServerFoundationCore` is a dangling link — the type is in `ServerFoundationLogging`. Use a plain
+  code span for anything outside the current target.
+- **DocC cannot link to extensions on a dependency's type.** `Application.enableAgentControl` and
+  `URL.webSocketURL` are extensions on Vapor's and Foundation's types, so they cannot appear in
+  `## Topics` and cannot be referenced with double backticks. Document them in prose;
+  `--include-extended-types` does not help.
+- **Parameter lists are all-or-nothing.** Document one parameter and DocC demands the rest.
+
+### 3. Examples must actually compile
+
+Every Swift block in the README and in a DocC catalog is code someone will paste. Extract them into
+a scratch package and build it — this has already caught a `@Sendable` closure capturing a mutable
+`var`, which would not have compiled for anyone who copied it. Blocks in one document may build on
+each other; concatenate per document rather than compiling each in isolation.
 
 ### 2. README.md, with at least one example
 
