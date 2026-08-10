@@ -7,6 +7,8 @@
 
 import Testing
 import Foundation
+
+#if Vapor
 import Vapor
 import ServerFoundationCore
 import ServerFoundationLogging
@@ -294,3 +296,4 @@ private final class LockedFlag: @unchecked Sendable {
         lock.lock(); flag = true; lock.unlock()
     }
 }
+#endif

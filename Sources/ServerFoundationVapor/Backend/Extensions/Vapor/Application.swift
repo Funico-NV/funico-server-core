@@ -5,6 +5,7 @@
 //  Created by Damian Van de Kauter on 04/02/2026.
 //
 
+#if Vapor
 import Vapor
 
 extension Application {
@@ -115,3 +116,4 @@ extension Application {
         }
     }
 }
+#endif

@@ -5,6 +5,7 @@
 //  Created by Damian Van de Kauter on 07/08/2026.
 //
 
+#if Vapor
 import Foundation
 import ServerFoundationCore
 
@@ -47,3 +48,4 @@ public struct StatelessAgentControlProvider: AgentControlProvider {
 
     public func serverState() async -> ServerState { .online }
 }
+#endif

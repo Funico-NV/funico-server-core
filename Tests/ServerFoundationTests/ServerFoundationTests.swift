@@ -7,7 +7,11 @@
 
 import Testing
 import Foundation
+
+#if Vapor
 import Vapor
+#endif
+
 import ServerFoundation
 
 // These tests guard the umbrella, not the logic — the logic is covered in
@@ -25,6 +29,7 @@ import ServerFoundation
     #expect(field == "id")
 }
 
+#if Vapor
 @Test func umbrellaReExportsVaporExtension() {
     // Referencing the unapplied method is the whole assertion, and it is checked at
     // compile time. Extension members are only visible when their defining module is
@@ -34,3 +39,4 @@ import ServerFoundation
     let exposeDocumentation = Application.exposeDocumentation(file:extension:in:)
     _ = exposeDocumentation
 }
+#endif

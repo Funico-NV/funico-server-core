@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -19,11 +19,17 @@ let package = Package(
         .library(name: "ServerFoundationVapor", targets: ["ServerFoundationVapor"]),
         .library(name: "ServerFoundationClient", targets: ["ServerFoundationClient"])
     ],
+    traits: [
+        .trait(
+            name: "Vapor",
+            description: "Enables ServerFoundationVapor and Vapor integrations."
+        )
+    ],
     dependencies: [
         // 1.11.0 is the floor, not a preference: `LogEvent` and the `log(event:)` LogHandler
         // requirement were introduced there. `MemoryLogHandler` does not compile below it.
-        .package(url: "https://github.com/apple/swift-log.git", from: Version(1,11,0)),
-        .package(url: "https://github.com/vapor/vapor.git", from: Version(4,0,0))
+        .package(url: "https://github.com/apple/swift-log.git", from: Version(1, 11, 0)),
+        .package(url: "https://github.com/vapor/vapor.git", from: Version(4, 0, 0))
     ],
     targets: [
         .target(name: "ServerFoundationCore"),
@@ -39,11 +45,15 @@ let package = Package(
             dependencies: [
                 "ServerFoundationCore",
                 "ServerFoundationLogging",
-                .product(name: "Vapor", package: "vapor")
+                .product(
+                    name: "Vapor",
+                    package: "vapor",
+                    condition: .when(traits: ["Vapor"])
+                )
             ]
         ),
-        // Not part of the umbrella: the umbrella is what Vapor servers import, and they have
-        // no use for a client. Consumers ask for this product by name.
+        // Not part of the umbrella: servers have no use for a client. Consumers ask for this
+        // product by name.
         .target(
             name: "ServerFoundationClient",
             dependencies: [
@@ -57,7 +67,7 @@ let package = Package(
             dependencies: [
                 "ServerFoundationCore",
                 "ServerFoundationLogging",
-                "ServerFoundationVapor"
+                .target(name: "ServerFoundationVapor", condition: .when(traits: ["Vapor"]))
             ]
         ),
         .testTarget(
@@ -74,11 +84,16 @@ let package = Package(
         ),
         .testTarget(
             name: "ServerFoundationVaporTests",
-            dependencies: ["ServerFoundationVapor"]
+            dependencies: [
+                .target(name: "ServerFoundationVapor", condition: .when(traits: ["Vapor"]))
+            ]
         ),
         .testTarget(
             name: "ServerFoundationTests",
-            dependencies: ["ServerFoundation"]
+            dependencies: [
+                .target(name: "ServerFoundation"),
+                .target(name: "ServerFoundationVapor", condition: .when(traits: ["Vapor"]))
+            ]
         )
     ]
 )
