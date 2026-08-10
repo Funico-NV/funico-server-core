@@ -6,11 +6,7 @@ import PackageDescription
 let package = Package(
     name: "funico-server-foundation",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v17),
-        .tvOS(.v17),
-        .watchOS(.v10),
-        .visionOS(.v1)
+        .iOS(.v17), .macOS(.v13), .tvOS(.v17), .visionOS(.v1), .watchOS(.v10)
     ],
     products: [
         .library(name: "ServerFoundation", targets: ["ServerFoundation"]),
@@ -20,14 +16,9 @@ let package = Package(
         .library(name: "ServerFoundationClient", targets: ["ServerFoundationClient"])
     ],
     traits: [
-        .trait(
-            name: "Vapor",
-            description: "Enables ServerFoundationVapor and Vapor integrations."
-        )
+        .trait(name: "Vapor", description: "Enables ServerFoundationVapor and Vapor integrations.")
     ],
     dependencies: [
-        // 1.11.0 is the floor, not a preference: `LogEvent` and the `log(event:)` LogHandler
-        // requirement were introduced there. `MemoryLogHandler` does not compile below it.
         .package(url: "https://github.com/apple/swift-log.git", from: Version(1, 11, 0)),
         .package(url: "https://github.com/vapor/vapor.git", from: Version(4, 0, 0))
     ],
@@ -45,15 +36,9 @@ let package = Package(
             dependencies: [
                 "ServerFoundationCore",
                 "ServerFoundationLogging",
-                .product(
-                    name: "Vapor",
-                    package: "vapor",
-                    condition: .when(traits: ["Vapor"])
-                )
+                .product(name: "Vapor", package: "vapor", condition: .when(traits: ["Vapor"]))
             ]
         ),
-        // Not part of the umbrella: servers have no use for a client. Consumers ask for this
-        // product by name.
         .target(
             name: "ServerFoundationClient",
             dependencies: [

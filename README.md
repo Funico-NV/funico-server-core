@@ -10,10 +10,10 @@ Server Manager app and the deploy agent — can depend on the shared models with
 
 | Product | Depends on | Use it from |
 |---|---|---|
-| `ServerFoundation` | Core + Logging + Vapor | Vapor servers. Umbrella; re-exports all three. |
+| `ServerFoundation` | Core + Logging; + Vapor with the `Vapor` trait | Umbrella. Re-exports Vapor only when the trait is enabled. |
 | `ServerFoundationCore` | *nothing* | Anywhere — apps, clients, the agent |
 | `ServerFoundationLogging` | Core, swift-log | Servers, the agent, the app |
-| `ServerFoundationVapor` | Core, Logging, Vapor | Vapor servers only |
+| `ServerFoundationVapor` | Core, Logging, Vapor with the `Vapor` trait | Vapor servers only |
 | `ServerFoundationClient` | Core, Logging, swift-log | The app and the agent |
 
 `ServerFoundationCore` has zero dependencies and must stay that way — it is what makes the package
@@ -21,6 +21,18 @@ importable from an iOS target.
 
 `ServerFoundationClient` is **not** in the umbrella. Servers have no use for a client, and keeping it
 out means importing `ServerFoundation` never drags in URLSession machinery.
+
+Vapor is behind a SwiftPM trait and is **not enabled by default**. A package that imports
+`ServerFoundationVapor`, or expects `ServerFoundation` to re-export Vapor extensions, must enable
+the trait in its package dependency:
+
+```swift
+.package(
+    url: "https://github.com/Funico-NV/funico-server-foundation",
+    from: Version(2, 0, 0),
+    traits: ["Vapor"]
+)
+```
 
 ## What's in them
 
@@ -165,17 +177,28 @@ until `funico-invoices-api` 1.3.0 removes its copy.
 
 ### Upgrading from 1.x
 
-One line, no source changes:
+Core, Logging and Client consumers need only the version bump:
 
 ```diff
 - .package(url: "https://github.com/Funico-NV/funico-server-foundation", from: Version(1,0,0)),
 + .package(url: "https://github.com/Funico-NV/funico-server-foundation", from: Version(2,0,0)),
 ```
 
-`import ServerFoundation` keeps working exactly as before. The umbrella re-exports the split
-products with `@_exported`, which is what makes `Application.exposeDocumentation` still resolve —
-extension members are only visible when their defining module is imported, so a typealias shim
-could not have delivered it.
+Vapor servers must also enable the `Vapor` trait:
+
+```diff
+ .package(
+     url: "https://github.com/Funico-NV/funico-server-foundation",
+-    from: Version(2,0,0)
++    from: Version(2,0,0),
++    traits: ["Vapor"]
+ )
+```
+
+With that trait enabled, `import ServerFoundation` keeps re-exporting the split products. The
+umbrella uses `@_exported`, which is what makes `Application.exposeDocumentation` still resolve —
+extension members are only visible when their defining module is imported, so a typealias shim could
+not have delivered it.
 
 `@_exported` is an underscored, formally unsupported attribute. Vapor relies on it and it is stable
 on Swift 6.x, but it is not a language guarantee. If a future toolchain drops it, the fix is to
@@ -188,14 +211,13 @@ import the specific products directly in each consumer; the blast radius is
 .product(name: "ServerFoundationCore", package: "funico-server-foundation")
 ```
 
-**Vapor is not built or linked, but it is still resolved.** SwiftPM prunes unused dependencies from
-the *build graph*, not from *dependency resolution* — so Vapor and its ~28 transitive packages will
-still be cloned and still appear in your `Package.resolved`. Nothing of them is compiled. If that
-checkout cost becomes a problem for the app, the fix is SwiftPM traits (requires raising
-`swift-tools-version` to 6.1 across consumers) and it can be added without a breaking change.
+**Vapor is not resolved, built or linked by default.** SwiftPM traits require
+`swift-tools-version` 6.1 in this package and in consumers that want to configure traits. Consumers
+that depend only on Core, Logging, Client, or the default umbrella leave the `Vapor` trait disabled
+and do not clone Vapor's transitive dependency graph.
 
 ## Dependency Versioning
 
-Vapor is tracked with `from: 4.0.0` and swift-log with `from: 1.5.0`. Neither is pinned in-repo;
+Vapor is tracked with `from: 4.0.0` and swift-log with `from: 1.11.0`. Neither is pinned in-repo;
 `Package.resolved` is deliberately not committed, since this package is always consumed as a
 dependency and the resolving root owns the pins.
