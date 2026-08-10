@@ -5,6 +5,7 @@
 //  Created by Damian Van de Kauter on 07/08/2026.
 //
 
+#if Vapor
 import Foundation
 import Vapor
 import ServerFoundationCore
@@ -17,3 +18,4 @@ extension ServerJobStatus: Content {}
 extension ControlHealth: Content {}
 extension ControlState: Content {}
 extension ServerJobDescriptor: Content {}
+#endif

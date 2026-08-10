@@ -5,6 +5,7 @@
 //  Created by Damian Van de Kauter on 07/08/2026.
 //
 
+#if Vapor
 import Foundation
 import Vapor
 
@@ -41,3 +42,4 @@ public struct ControlTokenMiddleware: AsyncMiddleware {
         return try await next.respond(to: request)
     }
 }
+#endif
