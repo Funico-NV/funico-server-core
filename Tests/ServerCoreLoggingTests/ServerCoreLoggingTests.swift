@@ -252,3 +252,24 @@ private func makeLog(_ message: String, level: Logger.Level = .info) -> FNCLog {
     ).topic == .jobs)
     #expect(ServerEventEnvelope(sequence: 4, serverID: "s", payload: .log(makeLog("x"))).topic == .log)
 }
+
+// MARK: - LogEntry from FNCLog
+
+@Test func aServerRecordBecomesAHostLogEntry() {
+    let written = Date(timeIntervalSince1970: 1_770_000_000.25)
+    let log = FNCLog(
+        date: written, level: .trace, message: "hello", metadata: ["job": "Process"],
+        source: "Invoices", file: "main.swift", function: "run()", line: 12
+    )
+
+    let entry = LogEntry(log, service: "invoices", cursor: "c1")
+
+    #expect(entry.priority == .debug)
+    #expect(entry.message == "hello")
+    #expect(entry.service == "invoices")
+    #expect(entry.cursor == "c1")
+    #expect(entry.fields["job"] == "Process")
+    #expect(entry.fields["line"] == "12")
+    #expect(abs(entry.timestamp.timeIntervalSince(written)) < 0.001)
+    #expect(LogPriority(Logger.Level.critical) == .critical)
+}

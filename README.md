@@ -20,6 +20,7 @@ deploy agent — can depend on the shared models without pulling in Vapor.
 | `ServerCoreLogging` | Core, swift-log | Servers, the agent, the app |
 | `ServerCoreVapor` | Core, Logging, Vapor with the `Vapor` trait | Vapor servers only |
 | `ServerCoreClient` | Core, Logging, swift-log | The app and the agent |
+| `ServerCoreTesting` | Core | Tests and SwiftUI previews: in-memory backends |
 
 `ServerCore` has zero dependencies and must stay that way — it is what makes the package
 importable from an iOS target.
@@ -44,6 +45,42 @@ the trait in its package dependency:
 **`ServerCore`** — `APIModel`, `APIModelError`, `Query`, `SQLQuery`, plus the shared server
 vocabulary: `ServerState`, `ServerJob`, `ServerJobState`, `ServerJobResult`,
 `ServerJobDescriptor`, `ServerJobCapability`.
+
+It also holds what the deploy agent, the Manager API and the app share to operate services on a
+host: identifiers (`ServerID`, `ServiceID`, `DeploymentID`, `CommandID`, `AgentID`), status
+(`ServiceStatus`, `ServerResources`), releases (`ReleaseInfo`, `ArtifactManifest`), deployments
+(`DeploymentStage`, `DeploymentState`), logs (`LogEntry`, `LogQuery`), the agent protocol
+(`AgentCommand`, `CommandEnvelope`, `AgentMessage`, `ManagerMessage`), `ServerCoreError`, and the
+protocols an agent implements: `ServiceBackend`, `LogSource`, `DeploymentExecutor`, `HealthProbe`,
+`ResourceSampler`, plus `ReleaseSource` for the Manager.
+
+```swift
+import ServerCore
+
+// What the Manager sends an agent to restart a service. A service is only ever named by ID;
+// the host decides what that ID means.
+let frame = ManagerMessage(body: .command(CommandEnvelope(
+    issuedBy: "user-subject",
+    command: .perform(.restart, service: "invoices")
+)))
+let data = try AgentProtocol.encoder.encode(frame)
+```
+
+**`ServerCoreTesting`** — in-memory `MockServiceBackend`, `MockLogSource`,
+`MockDeploymentExecutor`, `MockHealthProbe`, `MockResourceSampler` and `MockReleaseSource`. Each
+honours the real contract — an unlisted service is refused, logs page by cursor — and records what
+it was asked:
+
+```swift
+import ServerCore
+import ServerCoreTesting
+
+let backend = MockServiceBackend(services: [
+    ServiceDescriptor(id: "invoices", displayName: "Invoices", backend: .systemd)
+])
+try await backend.perform(.restart, on: "invoices")
+let state = try await backend.status(of: "invoices").activeState   // .active
+```
 
 **`ServerCoreLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
 Bootstrapping the handler is all a server needs to get a live log stream:

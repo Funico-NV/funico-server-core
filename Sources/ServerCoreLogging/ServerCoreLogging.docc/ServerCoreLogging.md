@@ -60,6 +60,26 @@ declares that conformance retroactively. `InvoicesAPI` 1.2.5 declares the same o
 both builds and runs without a diagnostic — but which conformance wins is unspecified, and the two
 agree only because one was copied from the other. `funico-invoices-api` 1.3.0 removes its copy.
 
+### Into the host's log stream
+
+The agent reads a host's logs as `ServerCore`'s `LogEntry`. A server's own ``FNCLog`` records join
+that stream through `LogEntry.init(_:service:cursor:)`, an extension defined here because it is the
+module that knows both types. swift-log's `trace` becomes `debug`, metadata is flattened to strings,
+and the call site is kept as `source`, `file`, `function` and `line` fields. ``FNCLog``'s timestamp
+carries no time zone, so convert on the host that wrote the record.
+
+```swift
+import Foundation
+import ServerCore
+import ServerCoreLogging
+
+let record = FNCLog(
+    level: .warning, message: "slow query", metadata: nil,
+    source: "Invoices", file: #fileID, function: #function, line: #line
+)
+let entry = LogEntry(record, service: "invoices")
+```
+
 ## Topics
 
 ### Logging

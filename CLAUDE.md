@@ -94,6 +94,7 @@ If a product has no example, it is not finished.
 | `ServerCoreLogging` | Core, swift-log | servers, agent, app |
 | `ServerCoreVapor` | Core, Logging, Vapor | Vapor servers only |
 | `ServerCoreClient` | Core, Logging, swift-log | app, agent |
+| `ServerCoreTesting` | Core | tests and previews in the agent, the app and the Manager API. Mocks only; no swift-testing or XCTest dependency |
 | `ServerFoundation`, `ServerFoundationCore`, … | the 3.x product of the same role | **deprecated** 2.x names, one `@_exported import` each, under `Sources/Compatibility/`. No catalogs. Removed in 4.0.0 |
 
 Released: **2.1.1** as funico-server-foundation; **3.0.0** is the first release as funico-server-core.
@@ -116,6 +117,13 @@ Released: **2.1.1** as funico-server-foundation; **3.0.0** is the first release 
 - **The legacy `"id;iso8601"` codec is frozen.** It is `@AppStorage`'s *persistence* codec on real
   devices, and the service cannot be upgraded atomically with an App Store build. New traffic uses
   `ServerEventEnvelope`.
+- **`AgentCommand` never carries a command line, a unit name or a path.** Every case names a service
+  by `ServiceID`, which the agent resolves through its own allow-list. That is what limits a
+  compromised Manager to operating services the host already lists; one convenient `.exec` case
+  undoes it.
+- **The agent protocol decodes the unknown, it does not fail on it.** A new command kind, event kind
+  or frame type decodes as `unsupported` on an older peer, so agents and the Manager can be upgraded
+  separately. Keep that true for every case added.
 - **Control-channel responses encode through `AgentControlCoding`, not Vapor's global encoder.**
   `ContentConfiguration.global` is process-wide and writable; a managed server installing its own
   encoder would otherwise silently change what the agent receives.

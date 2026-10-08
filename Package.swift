@@ -14,6 +14,7 @@ let package = Package(
         .library(name: "ServerCoreLogging", targets: ["ServerCoreLogging"]),
         .library(name: "ServerCoreVapor", targets: ["ServerCoreVapor"]),
         .library(name: "ServerCoreClient", targets: ["ServerCoreClient"]),
+        .library(name: "ServerCoreTesting", targets: ["ServerCoreTesting"]),
 
         // Deprecated: the 2.x names, kept for one major version so that moving to
         // funico-server-core is a URL change first and an import change later. Each is a
@@ -57,6 +58,10 @@ let package = Package(
             ]
         ),
         .target(
+            name: "ServerCoreTesting",
+            dependencies: ["ServerCore"]
+        ),
+        .target(
             name: "ServerKit",
             dependencies: [
                 "ServerCore",
@@ -67,6 +72,10 @@ let package = Package(
         .testTarget(
             name: "ServerCoreTests",
             dependencies: ["ServerCore"]
+        ),
+        .testTarget(
+            name: "ServerCoreTestingTests",
+            dependencies: ["ServerCoreTesting"]
         ),
         .testTarget(
             name: "ServerCoreLoggingTests",

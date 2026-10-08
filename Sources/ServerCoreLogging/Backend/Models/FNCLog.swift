@@ -115,6 +115,15 @@ extension FNCLog {
     }
 }
 
+extension FNCLog {
+
+    /// ``timestamp`` parsed back into a date, in this process's time zone — the format carries
+    /// none. Correct on the host that wrote the log, which is where the agent reads it.
+    var date: Date? {
+        FNCLog.timestampFormatter.date(from: timestamp)
+    }
+}
+
 private extension FNCLog {
 
     // Not ISO 8601 — this is the existing display format and changing it changes what a
