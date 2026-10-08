@@ -1,6 +1,6 @@
-# CLAUDE.md — funico-server-foundation
+# CLAUDE.md — funico-server-core
 
-The shared foundation for every Funico server, plus the models the Server Manager app and the
+Formerly funico-server-foundation (renamed in 3.0.0). The shared foundation for every Funico server, plus the models the Server Manager app and the
 deploy agent need. Cross-repo architecture lives in
 [`../../Funico Server Manager/server-manager-plan.md`](../../Funico%20Server%20Manager/server-manager-plan.md).
 
@@ -47,7 +47,7 @@ The script drives `docc` directly and needs nothing beyond the toolchain. Xcode'
 Three things that will bite:
 
 - **DocC cannot link across modules.** ` ``ServerEventEnvelope`` ` from inside
-  `ServerFoundationCore` is a dangling link — the type is in `ServerFoundationLogging`. Use a plain
+  `ServerCore` is a dangling link — the type is in `ServerCoreLogging`. Use a plain
   code span for anything outside the current target.
 - **DocC cannot link to extensions on a dependency's type.** `Application.enableAgentControl` and
   `URL.webSocketURL` are extensions on Vapor's and Foundation's types, so they cannot appear in
@@ -89,19 +89,25 @@ If a product has no example, it is not finished.
 
 | Product | Depends on | Consumers |
 |---|---|---|
-| `ServerFoundation` | Core + Logging + Vapor | the Vapor servers. Umbrella; `@_exported` re-exports all three |
-| `ServerFoundationCore` | *nothing* | app, agent, servers |
-| `ServerFoundationLogging` | Core, swift-log | servers, agent, app |
-| `ServerFoundationVapor` | Core, Logging, Vapor | Vapor servers only |
-| `ServerFoundationClient` | Core, Logging, swift-log | app, agent |
+| `ServerKit` | Core + Logging + Vapor | the Vapor servers. Umbrella; `@_exported` re-exports all three |
+| `ServerCore` | *nothing* | app, agent, servers |
+| `ServerCoreLogging` | Core, swift-log | servers, agent, app |
+| `ServerCoreVapor` | Core, Logging, Vapor | Vapor servers only |
+| `ServerCoreClient` | Core, Logging, swift-log | app, agent |
+| `ServerFoundation`, `ServerFoundationCore`, … | the 3.x product of the same role | **deprecated** 2.x names, one `@_exported import` each, under `Sources/Compatibility/`. No catalogs. Removed in 4.0.0 |
 
-Released: **2.1.0**.
+Released: **2.1.1** as funico-server-foundation; **3.0.0** is the first release as funico-server-core.
 
 ## Rules that are load-bearing
 
-- **`ServerFoundationCore` has zero package dependencies. Keep it that way.** It is what makes this
+- **`ServerCore` has zero package dependencies. Keep it that way.** It is what makes this
   importable from an iOS target and from the agent.
-- **`ServerFoundationClient` is not in the umbrella.** Servers have no use for a client.
+- **`ServerCoreClient` is not in the umbrella.** Servers have no use for a client.
+- **The compatibility shims re-export and nothing else.** No code, no new symbols, no catalogs: they
+  exist so a consumer can change the package URL before it changes its imports.
+- **Never create a repository called `funico-server-foundation` again.** GitHub's redirect from the
+  old name to this repository is what keeps unmigrated consumers building; a new repository with the
+  old name breaks that redirect.
 - **`ServerJobState` implements `Codable` by hand and must keep doing so.** It conforms to both
   `RawRepresentable` and `Codable`, and the stdlib's
   `extension RawRepresentable where RawValue: Codable, Self: Codable` defaults take precedence over
@@ -116,15 +122,18 @@ Released: **2.1.0**.
 
 ## Before you call a change done
 
-Seven repos declare this package. Three can be built locally
-(`funico-invoices-service`, `funico-scheduler-api-server`, `funico-authentication-server`); the rest
-need credentials for private dependencies. Verify with `swift package edit`, never by editing a
-consumer's manifest:
+Eight repos declare this package: `funico-server-agent`, `funico-invoices-service`,
+`funico-authentication-api-server`, `funico-scheduler-api-server`, `funico-dashboard-api-server`,
+`funico-kpi-api-server`, `funico-dashboard-web` and `funico-dashboard-manager-web`. Three can be built
+locally (`funico-invoices-service`, `funico-scheduler-api-server`, `funico-authentication-api-server`);
+the rest need credentials for private dependencies. Verify with `swift package edit`, never by
+editing a consumer's manifest. A consumer that still declares the old URL knows this package as
+`funico-server-foundation`, so use that identity in the commands below until it has migrated:
 
 ```bash
-swift package edit funico-server-foundation --path /path/to/funico-server-foundation
+swift package edit funico-server-core --path /path/to/funico-server-core
 swift build
-swift package unedit funico-server-foundation
+swift package unedit funico-server-core
 ```
 
 ## Versioning and commits

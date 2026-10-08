@@ -1,46 +1,51 @@
+# funico-server-core
+
+The shared foundation for every Funico server, the deploy agent and the Server Manager app.
+Formerly **funico-server-foundation** — see [Moving from funico-server-foundation](#moving-from-funico-server-foundation).
+
 ## Platform Compatibility
-![Swift Tests](https://github.com/Funico-NV/funico-server-foundation/actions/workflows/swift_tests.yml/badge.svg)
+![Swift Tests](https://github.com/Funico-NV/funico-server-core/actions/workflows/swift_tests.yml/badge.svg)
 
 macOS 13+ · iOS 17+ · tvOS 17+ · watchOS 10+ · visionOS 1+ · Linux
 
 ## Products
 
-2.0.0 split the single `ServerFoundation` library into layered products, so that clients — the
-Server Manager app and the deploy agent — can depend on the shared models without pulling in Vapor.
+The package is split into layered products, so that clients — the Server Manager app and the
+deploy agent — can depend on the shared models without pulling in Vapor.
 
 | Product | Depends on | Use it from |
 |---|---|---|
-| `ServerFoundation` | Core + Logging; + Vapor with the `Vapor` trait | Umbrella. Re-exports Vapor only when the trait is enabled. |
-| `ServerFoundationCore` | *nothing* | Anywhere — apps, clients, the agent |
-| `ServerFoundationLogging` | Core, swift-log | Servers, the agent, the app |
-| `ServerFoundationVapor` | Core, Logging, Vapor with the `Vapor` trait | Vapor servers only |
-| `ServerFoundationClient` | Core, Logging, swift-log | The app and the agent |
+| `ServerKit` | Core + Logging; + Vapor with the `Vapor` trait | Umbrella. Re-exports Vapor only when the trait is enabled. |
+| `ServerCore` | *nothing* | Anywhere — apps, clients, the agent |
+| `ServerCoreLogging` | Core, swift-log | Servers, the agent, the app |
+| `ServerCoreVapor` | Core, Logging, Vapor with the `Vapor` trait | Vapor servers only |
+| `ServerCoreClient` | Core, Logging, swift-log | The app and the agent |
 
-`ServerFoundationCore` has zero dependencies and must stay that way — it is what makes the package
+`ServerCore` has zero dependencies and must stay that way — it is what makes the package
 importable from an iOS target.
 
-`ServerFoundationClient` is **not** in the umbrella. Servers have no use for a client, and keeping it
-out means importing `ServerFoundation` never drags in URLSession machinery.
+`ServerCoreClient` is **not** in the umbrella. Servers have no use for a client, and keeping it
+out means importing `ServerKit` never drags in URLSession machinery.
 
 Vapor is behind a SwiftPM trait and is **not enabled by default**. A package that imports
-`ServerFoundationVapor`, or expects `ServerFoundation` to re-export Vapor extensions, must enable
+`ServerCoreVapor`, or expects `ServerKit` to re-export Vapor extensions, must enable
 the trait in its package dependency:
 
 ```swift
 .package(
-    url: "https://github.com/Funico-NV/funico-server-foundation",
-    from: Version(2, 0, 0),
+    url: "https://github.com/Funico-NV/funico-server-core",
+    from: Version(3, 0, 0),
     traits: ["Vapor"]
 )
 ```
 
 ## What's in them
 
-**`ServerFoundationCore`** — `APIModel`, `APIModelError`, `Query`, `SQLQuery`, plus the shared server
+**`ServerCore`** — `APIModel`, `APIModelError`, `Query`, `SQLQuery`, plus the shared server
 vocabulary: `ServerState`, `ServerJob`, `ServerJobState`, `ServerJobResult`,
 `ServerJobDescriptor`, `ServerJobCapability`.
 
-**`ServerFoundationLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
+**`ServerCoreLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
 Bootstrapping the handler is all a server needs to get a live log stream:
 
 ```swift
@@ -48,7 +53,7 @@ let storage = LogStorage()
 LoggingSystem.bootstrap { _ in MemoryLogHandler(storage: storage) }
 ```
 
-**`ServerFoundationVapor`** — `Application.exposeDocumentation`, and the agent control channel.
+**`ServerCoreVapor`** — `Application.exposeDocumentation`, and the agent control channel.
 
 ### The agent control channel
 
@@ -95,10 +100,10 @@ is not readable *across* users — but a same-user process can read it. A `0600`
 would be strictly tighter on Unix; that tightness is what is traded for Windows parity, where
 SwiftNIO's UDS support is unverified and Vapor's server config is hostname/port-shaped.
 
-**`ServerFoundationClient`** — `ResilientWebSocket`, `WebSocketBackoff`, `URL.webSocketURL`.
+**`ServerCoreClient`** — `ResilientWebSocket`, `WebSocketBackoff`, `URL.webSocketURL`.
 
 ```swift
-import ServerFoundationClient
+import ServerCoreClient
 
 let deviceToken = "…"   // from the Keychain
 
@@ -171,44 +176,80 @@ dependency on `funico-invoices-api`, which depends on this package — so it bel
 
 ### Duplicate retroactive conformance, until invoices-api 1.3.0
 
-`ServerFoundationLogging` declares `Logger.MetadataValue: @retroactive Codable`, and so does
+`ServerCoreLogging` declares `Logger.MetadataValue: @retroactive Codable`, and so does
 `InvoicesAPI` 1.2.5. Only one module in a process may. **Do not import both into the same target**
 until `funico-invoices-api` 1.3.0 removes its copy.
 
-### Upgrading from 1.x
+### Moving from funico-server-foundation
 
-Core, Logging and Client consumers need only the version bump:
+3.0.0 renamed the package, its repository and its products. The types inside did not change.
 
-```diff
-- .package(url: "https://github.com/Funico-NV/funico-server-foundation", from: Version(1,0,0)),
-+ .package(url: "https://github.com/Funico-NV/funico-server-foundation", from: Version(2,0,0)),
-```
+| 2.x | 3.x |
+|---|---|
+| package `funico-server-foundation` | `funico-server-core` |
+| `ServerFoundation` (umbrella) | `ServerKit` |
+| `ServerFoundationCore` | `ServerCore` |
+| `ServerFoundationLogging` | `ServerCoreLogging` |
+| `ServerFoundationVapor` | `ServerCoreVapor` |
+| `ServerFoundationClient` | `ServerCoreClient` |
 
-Vapor servers must also enable the `Vapor` trait:
+**Step 1 — the URL.** Change the package URL and version; leave the products and imports alone. The
+2.x product names still exist in 3.x as deprecated shims, each a single `@_exported import` of its
+successor, so code written against 2.x compiles unchanged:
 
 ```diff
  .package(
-     url: "https://github.com/Funico-NV/funico-server-foundation",
--    from: Version(2,0,0)
-+    from: Version(2,0,0),
+-    url: "https://github.com/Funico-NV/funico-server-foundation",
+-    from: Version(2,0,0),
++    url: "https://github.com/Funico-NV/funico-server-core",
++    from: Version(3,0,0),
+     traits: ["Vapor"]
+ )
+ …
+-.product(name: "ServerFoundation", package: "funico-server-foundation")
++.product(name: "ServerFoundation", package: "funico-server-core")
+```
+
+The `package:` argument changes because SwiftPM names a package after the last component of its URL.
+
+**Step 2 — the imports, whenever convenient.** Swap each old product and `import` for its new name.
+The shims are removed in 4.0.0.
+
+**One graph, one name.** A dependency graph that reaches this package through both the old and the
+new URL has two packages defining the same modules, and will not build. Within one graph — one
+server and everything it depends on — move every reference together. Separate servers can move one at
+a time: GitHub redirects the old URL and keeps the 1.x and 2.x tags, so an unmigrated consumer keeps
+resolving as it does today.
+
+### Upgrading from 1.x
+
+Moving from 1.x also takes the 2.0 product split. Vapor servers must enable the `Vapor` trait, which
+requires `swift-tools-version` 6.1 in the consumer:
+
+```diff
+ .package(
+-    url: "https://github.com/Funico-NV/funico-server-foundation",
+-    from: Version(1,0,0)
++    url: "https://github.com/Funico-NV/funico-server-core",
++    from: Version(3,0,0),
 +    traits: ["Vapor"]
  )
 ```
 
-With that trait enabled, `import ServerFoundation` keeps re-exporting the split products. The
-umbrella uses `@_exported`, which is what makes `Application.exposeDocumentation` still resolve —
-extension members are only visible when their defining module is imported, so a typealias shim could
-not have delivered it.
+With that trait enabled, `import ServerKit` (or the deprecated `import ServerFoundation`) re-exports
+the split products. The umbrella uses `@_exported`, which is what makes
+`Application.exposeDocumentation` still resolve — extension members are only visible when their
+defining module is imported, so a typealias shim could not have delivered it.
 
 `@_exported` is an underscored, formally unsupported attribute. Vapor relies on it and it is stable
 on Swift 6.x, but it is not a language guarantee. If a future toolchain drops it, the fix is to
 import the specific products directly in each consumer; the blast radius is
-`Sources/ServerFoundation/ServerFoundation.swift`.
+`Sources/ServerKit/ServerKit.swift` and the shims under `Sources/Compatibility/`.
 
 ### Depending on Core alone
 
 ```swift
-.product(name: "ServerFoundationCore", package: "funico-server-foundation")
+.product(name: "ServerCore", package: "funico-server-core")
 ```
 
 **Vapor is not resolved, built or linked by default.** SwiftPM traits require
@@ -218,6 +259,6 @@ and do not clone Vapor's transitive dependency graph.
 
 ## Dependency Versioning
 
-Vapor is tracked with `from: 4.0.0` and swift-log with `from: 1.11.0`. Neither is pinned in-repo;
-`Package.resolved` is deliberately not committed, since this package is always consumed as a
-dependency and the resolving root owns the pins.
+Vapor is tracked with `from: 4.0.0` and swift-log with `from: 1.11.0`. This package is always
+consumed as a dependency, so the resolving root owns the pins; the `Package.resolved` in this
+repository only pins this package's own CI and local builds.

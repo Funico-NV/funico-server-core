@@ -30,11 +30,21 @@ mkdir -p "$graphs"
 # recompiles nothing and therefore emits nothing, and a stale-but-valid graph beats no graph.
 # Use --clean after removing a public symbol.
 echo "Building symbol graphs…"
-if ! swift build --scratch-path "$scratch" \
+#
+# `--traits Vapor` because ServerCoreVapor is empty without it: its catalog would document nothing
+# and report every symbol it names as missing.
+if ! swift build --scratch-path "$scratch" --traits Vapor \
         -Xswiftc -emit-symbol-graph \
         -Xswiftc -emit-symbol-graph-dir -Xswiftc "$graphs" > /dev/null 2>&1; then
     echo "✗ build failed"
     exit 1
+fi
+
+# `xcrun` finds docc inside Xcode on macOS; Linux toolchains ship it on the PATH.
+if command -v xcrun > /dev/null 2>&1; then
+    docc="xcrun docc"
+else
+    docc="docc"
 fi
 
 status=0
@@ -67,7 +77,7 @@ for catalog in Sources/*/*.docc; do
     rm -rf "$output"
     mkdir -p "$output"
 
-    diagnostics=$(xcrun docc convert "$catalog" \
+    diagnostics=$($docc convert "$catalog" \
         --fallback-display-name "$target" \
         --fallback-bundle-identifier "com.funico.$target" \
         --additional-symbol-graph-dir "$target_graphs" \
