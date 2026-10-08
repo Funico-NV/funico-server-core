@@ -1,8 +1,8 @@
 name: Swift Tests
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
+  # pull_request:
+    # types: [opened, reopened, synchronize]
 
 jobs:
   tests:
