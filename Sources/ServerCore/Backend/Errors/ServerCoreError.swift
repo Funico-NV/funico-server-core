@@ -71,6 +71,11 @@ public struct ServerCoreError: Error, Sendable, Hashable, Codable {
 
         /// The thing asked for does not exist: a release, a deployment, a log cursor.
         public static let notFound = Code("notFound")
+
+        /// An agent's enrollment or connection handshake was refused. Deliberately the only thing a
+        /// peer learns: which check failed — expired, replayed, wrong key — goes to the Manager's
+        /// log, not to a peer that might be probing. See `AgentAuthenticationError`.
+        public static let authenticationFailed = Code("authenticationFailed")
     }
 
     /// What went wrong. Switch on this.

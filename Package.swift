@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "ServerCoreVapor", targets: ["ServerCoreVapor"]),
         .library(name: "ServerCoreClient", targets: ["ServerCoreClient"]),
         .library(name: "ServerCoreTesting", targets: ["ServerCoreTesting"]),
+        .library(name: "ServerCoreCrypto", targets: ["ServerCoreCrypto"]),
 
         // Deprecated: the 2.x names, kept for one major version so that moving to
         // funico-server-core is a URL change first and an import change later. Each is a
@@ -26,11 +27,18 @@ let package = Package(
         .library(name: "ServerFoundationClient", targets: ["ServerFoundationClient"])
     ],
     traits: [
-        .trait(name: "Vapor", description: "Enables ServerCoreVapor and Vapor integrations.")
+        .trait(name: "Vapor", description: "Enables ServerCoreVapor and Vapor integrations."),
+        .trait(
+            name: "Crypto",
+            description: "Enables ServerCoreCrypto: Ed25519 agent signing and verification with swift-crypto."
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: Version(1, 11, 0)),
-        .package(url: "https://github.com/vapor/vapor.git", from: Version(4, 0, 0))
+        .package(url: "https://github.com/vapor/vapor.git", from: Version(4, 0, 0)),
+        // A range rather than `from:` so it can never be the reason a graph with Vapor (which caps
+        // swift-crypto below 5) fails to resolve. `Curve25519.Signing` is unchanged across it.
+        .package(url: "https://github.com/apple/swift-crypto.git", Version(3, 0, 0)..<Version(6, 0, 0))
     ],
     targets: [
         .target(name: "ServerCore"),
@@ -61,6 +69,16 @@ let package = Package(
             name: "ServerCoreTesting",
             dependencies: ["ServerCore"]
         ),
+        // Behind a trait, like Vapor: a trait-gated dependency is not resolved for consumers that
+        // leave the trait off, so the app and the servers that never talk to an agent do not clone
+        // swift-crypto. A plain product would put it in every consumer's graph.
+        .target(
+            name: "ServerCoreCrypto",
+            dependencies: [
+                "ServerCore",
+                .product(name: "Crypto", package: "swift-crypto", condition: .when(traits: ["Crypto"]))
+            ]
+        ),
         .target(
             name: "ServerKit",
             dependencies: [
@@ -84,6 +102,14 @@ let package = Package(
         .testTarget(
             name: "ServerCoreClientTests",
             dependencies: ["ServerCoreClient"]
+        ),
+        .testTarget(
+            name: "AgentIdentityTests",
+            dependencies: [
+                "ServerCore",
+                "ServerCoreTesting",
+                .target(name: "ServerCoreCrypto", condition: .when(traits: ["Crypto"]))
+            ]
         ),
         .testTarget(
             name: "ServerCoreVaporTests",

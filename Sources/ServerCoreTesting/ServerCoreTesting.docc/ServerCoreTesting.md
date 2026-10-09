@@ -1,6 +1,7 @@
 # ``ServerCoreTesting``
 
-In-memory implementations of ServerCore's service protocols, for tests and SwiftUI previews.
+In-memory implementations of ServerCore's service and agent-identity protocols, for tests and
+SwiftUI previews.
 
 ## Overview
 
@@ -42,3 +43,11 @@ let asked = await backend.performed                      // [.restart of invoice
 
 - ``MockDeploymentExecutor``
 - ``MockReleaseSource``
+
+### Agent identity
+
+Test the enrollment and handshake policy without swift-crypto. The signatures are forgeable by
+design; the keys carry an algorithm no real verifier accepts.
+
+- ``MockAgentSigner``
+- ``MockAgentSignatureVerifier``

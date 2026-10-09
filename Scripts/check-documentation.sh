@@ -31,9 +31,9 @@ mkdir -p "$graphs"
 # Use --clean after removing a public symbol.
 echo "Building symbol graphs…"
 #
-# `--traits Vapor` because ServerCoreVapor is empty without it: its catalog would document nothing
-# and report every symbol it names as missing.
-if ! swift build --scratch-path "$scratch" --traits Vapor \
+# `--traits Vapor,Crypto` because ServerCoreVapor and ServerCoreCrypto are empty without them: their
+# catalogs would document nothing and report every symbol they name as missing.
+if ! swift build --scratch-path "$scratch" --traits Vapor,Crypto \
         -Xswiftc -emit-symbol-graph \
         -Xswiftc -emit-symbol-graph-dir -Xswiftc "$graphs" > /dev/null 2>&1; then
     echo "✗ build failed"
