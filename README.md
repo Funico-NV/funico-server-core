@@ -3,6 +3,17 @@
 The shared foundation for every Funico server, the deploy agent and the Server Manager app.
 Formerly **funico-server-foundation** — see [Moving from funico-server-foundation](#moving-from-funico-server-foundation).
 
+It is a library: there is nothing to start here. In the Server Manager system it supplies the wire
+models and policy that its parts share, so each pulls in only the products it needs. The agent and the Manager API server, for example:
+
+| Consumer | Products |
+|---|---|
+| [`funico-server-agent`](https://github.com/Funico-NV/funico-server-agent) | `ServerCore`, `ServerCoreLogging`, `ServerCoreCrypto` (trait `Crypto`) |
+| [`funico-server-manager-api-server`](https://github.com/Funico-NV/funico-server-manager-api-server) | `ServerCore`, `ServerCoreLogging`, `ServerCoreVapor`, `ServerCoreCrypto` (traits `Vapor`, `Crypto`) |
+
+To bring the whole system up, start from the
+[Manager's guide](https://github.com/Funico-NV/funico-server-manager-api-server#start-the-whole-system).
+
 ## Platform Compatibility
 ![Swift Tests](https://github.com/Funico-NV/funico-server-core/actions/workflows/swift_tests.yml/badge.svg)
 
