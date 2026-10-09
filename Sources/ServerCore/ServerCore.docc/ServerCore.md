@@ -14,8 +14,9 @@ knowing what that server does.
 The **service and deployment vocabulary** (``ServiceStatus``, ``ReleaseInfo``, ``DeploymentState``,
 ``LogEntry`` and the rest) and the protocols behind it (``ServiceBackend``, ``LogSource``,
 ``DeploymentExecutor``) are what the deploy agent, the Manager API and the app share to operate
-services on a host. <doc:ManagingServices> walks through them, and <doc:AgentProtocolArticle>
-describes the wire protocol between agent and Manager.
+services on a host. <doc:ManagingServices> walks through them, <doc:AgentProtocolArticle>
+describes the wire protocol between agent and Manager, and <doc:EnrollingAgents> how an agent
+proves who it is before that protocol starts.
 
 Zero package dependencies is a requirement, not an accident. It is what makes this importable from
 an iOS target and from the agent, neither of which can afford to link Vapor.
@@ -140,6 +141,34 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``CommandProgress``
 - ``CommandResult``
 - ``AgentEvent``
+
+### Agent identity
+
+- <doc:EnrollingAgents>
+- ``ManagerID``
+- ``AgentEnrollmentAuthority``
+- ``AgentEnrollmentToken``
+- ``AgentEnrollmentGrant``
+- ``AgentEnrollmentRequest``
+- ``AgentEnrollmentResponse``
+- ``EnrolledAgent``
+- ``AgentAuthenticator``
+- ``AgentHandshakeMessage``
+- ``AgentHello``
+- ``AgentChallenge``
+- ``AgentChallengeNonce``
+- ``AgentChallengeResponse``
+- ``AgentAuthenticationError``
+- ``AgentSigningPayload``
+- ``AgentSigner``
+- ``AgentSignatureVerifier``
+- ``AgentPublicKey``
+- ``AgentKeyAlgorithm``
+- ``AgentSignature``
+- ``AgentNonceStore``
+- ``InMemoryAgentNonceStore``
+- ``AgentEnrollmentTokenStore``
+- ``InMemoryAgentEnrollmentTokenStore``
 
 ### Errors and identifiers
 

@@ -34,4 +34,15 @@ extension Date {
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: self)
     }
+
+    /// Whole seconds since 1970, truncated toward negative infinity: the only form a time takes in
+    /// a signed payload.
+    var unixSeconds: Int64 {
+        Int64(timeIntervalSince1970.rounded(.down))
+    }
+
+    /// This date with any fraction of a second removed.
+    var truncatedToSeconds: Date {
+        Date(timeIntervalSince1970: TimeInterval(unixSeconds))
+    }
 }

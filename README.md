@@ -21,6 +21,7 @@ deploy agent — can depend on the shared models without pulling in Vapor.
 | `ServerCoreVapor` | Core, Logging, Vapor with the `Vapor` trait | Vapor servers only |
 | `ServerCoreClient` | Core, Logging, swift-log | The app and the agent |
 | `ServerCoreTesting` | Core | Tests and SwiftUI previews: in-memory backends |
+| `ServerCoreCrypto` | Core; + swift-crypto with the `Crypto` trait | The agent and the Manager: Ed25519 agent identity |
 
 `ServerCore` has zero dependencies and must stay that way — it is what makes the package
 importable from an iOS target.
@@ -39,6 +40,10 @@ the trait in its package dependency:
     traits: ["Vapor"]
 )
 ```
+
+The same goes for swift-crypto and the `Crypto` trait: only the agent and the Manager sign or
+verify anything, so only they enable it — `traits: ["Crypto"]` for the agent, `["Vapor", "Crypto"]`
+for the Manager API — and import `ServerCoreCrypto`. Everyone else never resolves swift-crypto.
 
 ## What's in them
 
@@ -66,6 +71,53 @@ let frame = ManagerMessage(body: .command(CommandEnvelope(
 let data = try AgentProtocol.encoder.encode(frame)
 ```
 
+It also holds the agent identity protocol: one-time enrollment (`AgentEnrollmentAuthority`,
+`AgentEnrollmentRequest`) and the signed challenge on every connection (`AgentAuthenticator`,
+`AgentChallenge`, `AgentHandshakeMessage`). Core owns the policy and the exact bytes signed; the
+signing itself is behind `AgentSigner` and `AgentSignatureVerifier`, implemented in
+`ServerCoreCrypto`.
+
+**`ServerCoreCrypto`** — `Ed25519AgentSigner` and `Ed25519AgentSignatureVerifier`, on swift-crypto.
+Enable the `Crypto` trait to get them:
+
+```swift
+import ServerCore
+import ServerCoreCrypto
+
+let manager: ManagerID = "manager.funico.internal"
+let verifier = Ed25519AgentSignatureVerifier()
+
+// The agent, once: a key pair. Persist `signer.rawRepresentation` 0600; it never leaves the host.
+let signer = Ed25519AgentSigner()
+
+// The Manager issues a one-time token for a server; the agent presents it with its public key.
+let enrollment = AgentEnrollmentAuthority(
+    manager: manager,
+    tokens: InMemoryAgentEnrollmentTokenStore(),
+    verifier: verifier
+)
+let grant = try await enrollment.issueToken(for: "box-1")
+let enrolled = try await enrollment.enroll(
+    try await AgentEnrollmentRequest(token: grant.token, signer: signer)
+)
+let identity = enrollment.response(for: enrolled)   // the agent stores this
+
+// On every connection: the Manager challenges, the agent signs, the Manager verifies.
+let authenticator = AgentAuthenticator(
+    manager: manager,
+    verifier: verifier,
+    nonces: InMemoryAgentNonceStore()
+)
+let challenge = authenticator.challenge(for: identity.agent)
+let response = try await challenge.response(as: identity.agent, for: identity.manager, signer: signer)
+try await authenticator.verify(response, to: challenge, from: enrolled)
+```
+
+A replayed response, a signature by any other key, an expired challenge, and a challenge for another
+agent or another Manager are each refused. What is signed is a length-prefixed, domain-separated
+binary encoding, never JSON, so both ends derive identical bytes whatever their JSON encoder does;
+the `EnrollingAgents` article in the `ServerCore` catalog explains the layout.
+
 **`ServerCoreTesting`** — in-memory `MockServiceBackend`, `MockLogSource`,
 `MockDeploymentExecutor`, `MockHealthProbe`, `MockResourceSampler` and `MockReleaseSource`. Each
 honours the real contract — an unlisted service is refused, logs page by cursor — and records what
@@ -81,6 +133,10 @@ let backend = MockServiceBackend(services: [
 try await backend.perform(.restart, on: "invoices")
 let state = try await backend.status(of: "invoices").activeState   // .active
 ```
+
+`MockAgentSigner` and `MockAgentSignatureVerifier` test the agent identity policy without
+swift-crypto. Their signatures are forgeable by design, and their keys carry an algorithm the real
+verifier refuses.
 
 **`ServerCoreLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
 Bootstrapping the handler is all a server needs to get a live log stream:
@@ -296,6 +352,8 @@ and do not clone Vapor's transitive dependency graph.
 
 ## Dependency Versioning
 
-Vapor is tracked with `from: 4.0.0` and swift-log with `from: 1.11.0`. This package is always
+Vapor is tracked with `from: 4.0.0`, swift-log with `from: 1.11.0`, and swift-crypto with
+`3.0.0..<6.0.0` — a range, so it is never what stops a graph that also contains Vapor (which caps
+swift-crypto below 5) from resolving. This package is always
 consumed as a dependency, so the resolving root owns the pins; the `Package.resolved` in this
 repository only pins this package's own CI and local builds.

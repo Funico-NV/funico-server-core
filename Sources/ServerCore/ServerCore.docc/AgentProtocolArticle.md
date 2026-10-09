@@ -55,5 +55,9 @@ frame types are additive: a receiver that does not know one decodes it as `unsup
 an unknown command with ``ServerCoreError/Code/unsupportedCommand``, ignoring an unknown event —
 rather than dropping the connection.
 
-Enrollment and the signed challenge on connect are not part of this yet; they arrive with the agent
-identity work.
+### Before any of this
+
+Every connection opens with a handshake that proves the agent's identity: the Manager sends a
+challenge, the agent signs it with its enrolled key. No ``AgentMessage`` or ``ManagerMessage`` is
+sent or acted on until the Manager has accepted it. <doc:EnrollingAgents> describes enrollment and
+the handshake.

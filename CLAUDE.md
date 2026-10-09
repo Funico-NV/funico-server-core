@@ -95,6 +95,7 @@ If a product has no example, it is not finished.
 | `ServerCoreVapor` | Core, Logging, Vapor | Vapor servers only |
 | `ServerCoreClient` | Core, Logging, swift-log | app, agent |
 | `ServerCoreTesting` | Core | tests and previews in the agent, the app and the Manager API. Mocks only; no swift-testing or XCTest dependency |
+| `ServerCoreCrypto` | Core; swift-crypto with the `Crypto` trait | agent and Manager API only. Ed25519 `AgentSigner`/`AgentSignatureVerifier`; empty without the trait |
 | `ServerFoundation`, `ServerFoundationCore`, … | the 3.x product of the same role | **deprecated** 2.x names, one `@_exported import` each, under `Sources/Compatibility/`. No catalogs. Removed in 4.0.0 |
 
 Released: **2.1.1** as funico-server-foundation; **3.0.0** is the first release as funico-server-core.
@@ -104,6 +105,20 @@ Released: **2.1.1** as funico-server-foundation; **3.0.0** is the first release 
 - **`ServerCore` has zero package dependencies. Keep it that way.** It is what makes this
   importable from an iOS target and from the agent.
 - **`ServerCoreClient` is not in the umbrella.** Servers have no use for a client.
+- **Cryptography stays out of `ServerCore` and behind the `Crypto` trait.** Core owns the agent
+  identity *policy* — wire models, signed bytes, the order of checks — and reaches signing only
+  through `AgentSigner` / `AgentSignatureVerifier`. swift-crypto lives in `ServerCoreCrypto`, gated
+  by the trait so the app and the managed servers never resolve it. Do not make it a plain product
+  dependency, and do not put it in the umbrella.
+- **What an agent signs is `AgentSigningPayload`'s canonical encoding, never JSON, and it is
+  frozen.** Length-prefixed fields in a fixed order behind a versioned context string; tests pin it
+  byte for byte. Agents and the Manager upgrade separately, so changing a field means a new context
+  (`…challenge.v2`), accepted alongside the old one for a release — never an edit to `v1`.
+- **The Manager verifies a challenge response against the challenge it kept, never one the agent
+  echoes.** `AgentChallengeResponse` carries only the nonce, the agent ID and the signature for
+  that reason; do not add fields the Manager would be tempted to trust. Each challenge is single use
+  (`AgentNonceStore`), and its nonce is consumed *before* the signature is checked, so a challenge
+  gets one attempt.
 - **The compatibility shims re-export and nothing else.** No code, no new symbols, no catalogs: they
   exist so a consumer can change the package URL before it changes its imports.
 - **Never create a repository called `funico-server-foundation` again.** GitHub's redirect from the
