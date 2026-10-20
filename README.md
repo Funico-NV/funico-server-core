@@ -3,6 +3,10 @@
 The shared foundation for every Funico server, the deploy agent and the Server Manager app.
 Formerly **funico-server-foundation** — see [Moving from funico-server-foundation](#moving-from-funico-server-foundation).
 
+The standalone [MCP tooling prototype](Dev/MCPTooling/README.md) demonstrates registration,
+discovery and invocation with the official Swift SDK. It is a separate development package;
+existing Core products do not gain an SDK dependency.
+
 It is a library: there is nothing to start here. In the Server Manager system it supplies the wire
 models and policy that its parts share, so each pulls in only the products it needs. The agent and the Manager API server, for example:
 
@@ -18,6 +22,11 @@ To bring the whole system up, start from the
 ![Swift Tests](https://github.com/Funico-NV/funico-server-core/actions/workflows/swift_tests.yml/badge.svg)
 
 macOS 13+ · iOS 17+ · tvOS 17+ · watchOS 10+ · visionOS 1+ · Linux
+
+Linux CI runs on pull requests, pushes to `main`, and manual dispatch. It checks both default
+products and `--traits Vapor,Crypto`, so server/control-channel and agent cryptography coverage
+cannot disappear merely because the optional products were not enabled. Markdown-only changes
+do not trigger a build; macOS/Windows build coverage is not implied by this workflow.
 
 ## Products
 
