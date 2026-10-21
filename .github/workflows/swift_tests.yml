@@ -17,7 +17,7 @@ jobs:
       - name: Test default products
         run: swift test -j 4
       - name: Test the traits used by the Manager and agent
-        run: swift test --traits Vapor,Crypto -j 4
+        run: swift test --traits Vapor,Crypto,MCP -j 4
   mcp-prototype:
     runs-on: ubuntu-24.04
     container: swift:6.3-noble
