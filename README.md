@@ -377,3 +377,38 @@ Vapor is tracked with `from: 4.0.0`, swift-log with `from: 1.11.0`, and swift-cr
 swift-crypto below 5) from resolving. This package is always
 consumed as a dependency, so the resolving root owns the pins; the `Package.resolved` in this
 repository only pins this package's own CI and local builds.
+
+## Service-owned MCP actions
+
+Enable the `MCP` trait and use `ServerCoreMCP` for SDK tool registration. Core's wire models
+remain free of SDK dependencies. The service supplies business behavior and validates arguments;
+Manager/Agent authorization never relies on MCP annotations.
+
+```swift
+import MCP
+import ServerCoreMCP
+
+func makeServiceTools() throws -> ServiceToolRegistry {
+    try ServiceToolRegistry([])
+}
+```
+
+`ServerCoreMCPVapor` adds the authenticated local HTTP boundary; enable both `MCP` and `Vapor`.
+The application binds loopback. Provision `token` privately rather than placing it in source.
+
+```swift
+import Vapor
+import ServerCoreMCP
+import ServerCoreMCPVapor
+
+func hostServiceTools(on app: Application, registry: ServiceToolRegistry, token: String) throws {
+    try ServiceMCPRoutes(registry: registry, token: token, name: "Example service", version: "1.0.0")
+        .register(on: app)
+}
+```
+
+`ServiceToolDefinition`/`ServiceToolCall`/`ServiceToolResult` preserve metadata and structured values
+across the Agent channel. `ToolFormSchema` enforces the initial generated-form profile: object
+arguments with explicit string enums, booleans or bounded numbers. Unknown constraints, free text,
+secret inputs, nested schemas and references are refused rather than weakened. An action carries
+its definition revision; interrupted running commands are not automatically executed again.

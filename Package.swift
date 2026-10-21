@@ -16,6 +16,8 @@ let package = Package(
         .library(name: "ServerCoreClient", targets: ["ServerCoreClient"]),
         .library(name: "ServerCoreTesting", targets: ["ServerCoreTesting"]),
         .library(name: "ServerCoreCrypto", targets: ["ServerCoreCrypto"]),
+        .library(name: "ServerCoreMCP", targets: ["ServerCoreMCP"]),
+        .library(name: "ServerCoreMCPVapor", targets: ["ServerCoreMCPVapor"]),
 
         // Deprecated: the 2.x names, kept for one major version so that moving to
         // funico-server-core is a URL change first and an import change later. Each is a
@@ -27,6 +29,7 @@ let package = Package(
         .library(name: "ServerFoundationClient", targets: ["ServerFoundationClient"])
     ],
     traits: [
+        .trait(name: "MCP", description: "Enables official-SDK service tool registration and HTTP hosting."),
         .trait(name: "Vapor", description: "Enables ServerCoreVapor and Vapor integrations."),
         .trait(
             name: "Crypto",
@@ -34,6 +37,7 @@ let package = Package(
         )
     ],
     dependencies: [
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", exact: "0.12.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: Version(1, 11, 0)),
         .package(url: "https://github.com/vapor/vapor.git", from: Version(4, 0, 0)),
         // A range rather than `from:` so it can never be the reason a graph with Vapor (which caps
@@ -42,6 +46,14 @@ let package = Package(
     ],
     targets: [
         .target(name: "ServerCore"),
+        .target(name: "ServerCoreMCP", dependencies: [
+            .product(name: "MCP", package: "swift-sdk", condition: .when(traits: ["MCP"]))
+        ]),
+        .target(name: "ServerCoreMCPVapor", dependencies: [
+            "ServerCoreMCP",
+            .product(name: "MCP", package: "swift-sdk", condition: .when(traits: ["MCP"])),
+            .product(name: "Vapor", package: "vapor", condition: .when(traits: ["Vapor"]))
+        ]),
         .target(
             name: "ServerCoreLogging",
             dependencies: [
@@ -87,6 +99,12 @@ let package = Package(
                 .target(name: "ServerCoreVapor", condition: .when(traits: ["Vapor"]))
             ]
         ),
+        .testTarget(name: "ServerCoreMCPTests", dependencies: [
+            .target(name: "ServerCoreMCP", condition: .when(traits: ["MCP"])),
+            .target(name: "ServerCoreMCPVapor", condition: .when(traits: ["MCP", "Vapor"])),
+            .product(name: "MCP", package: "swift-sdk", condition: .when(traits: ["MCP"])),
+            .product(name: "VaporTesting", package: "vapor", condition: .when(traits: ["Vapor"]))
+        ]),
         .testTarget(
             name: "ServerCoreTests",
             dependencies: ["ServerCore"]

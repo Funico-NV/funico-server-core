@@ -25,18 +25,21 @@ if [ "${1:-}" = "--clean" ]; then
 fi
 mkdir -p "$graphs"
 
-# One build for the whole package, in its own scratch path so it does not fight the ordinary
-# `swift build` cache. The graph directory is *not* cleared between runs: an incremental build
-# recompiles nothing and therefore emits nothing, and a stale-but-valid graph beats no graph.
-# Use --clean after removing a public symbol.
+# SwiftPM 6.4's default build engine does not emit graphs reliably from -Xswiftc.
+# Ask SwiftPM to extract every package target, including incrementally built modules.
 echo "Building symbol graphs…"
-#
-# `--traits Vapor,Crypto` because ServerCoreVapor and ServerCoreCrypto are empty without them: their
-# catalogs would document nothing and report every symbol they name as missing.
-if ! swift build --scratch-path "$scratch" --traits Vapor,Crypto \
-        -Xswiftc -emit-symbol-graph \
-        -Xswiftc -emit-symbol-graph-dir -Xswiftc "$graphs" > /dev/null 2>&1; then
+build_log=$(mktemp)
+if ! swift package --scratch-path "$scratch" --traits Vapor,Crypto,MCP dump-symbol-graph \
+        --minimum-access-level public > "$build_log" 2>&1; then
     echo "✗ build failed"
+    tail -20 "$build_log"
+    rm -f "$build_log"
+    exit 1
+fi
+graphs=$(sed -n 's/^Files written to //p' "$build_log" | tail -1)
+rm -f "$build_log"
+if [ ! -d "$graphs" ]; then
+    echo "✗ SwiftPM did not report its symbol graph directory"
     exit 1
 fi
 

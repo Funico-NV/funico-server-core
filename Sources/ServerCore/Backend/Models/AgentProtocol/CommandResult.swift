@@ -45,6 +45,12 @@ public struct CommandResult: Sendable, Hashable, Codable {
     /// still says whether it was rolled back.
     public var deployment: DeploymentState?
 
+    /// Discovered service-owned tool definitions. Older peers ignore this optional payload.
+    public var tools: [ServiceToolDefinition]?
+
+    /// The service's tool result, including domain refusals.
+    public var toolResult: ServiceToolResult?
+
     /// Whether the command succeeded.
     public var isSuccess: Bool { error == nil }
 
@@ -58,6 +64,8 @@ public struct CommandResult: Sendable, Hashable, Codable {
     ///   - statuses: service statuses.
     ///   - logs: a page of log entries.
     ///   - deployment: how a deployment or rollback ended.
+    ///   - tools: discovered service definitions.
+    ///   - toolResult: service-provided call result.
     public init(
         command: CommandID,
         completedAt: Date = Date(),
@@ -65,7 +73,9 @@ public struct CommandResult: Sendable, Hashable, Codable {
         services: [ServiceDescriptor]? = nil,
         statuses: [ServiceStatus]? = nil,
         logs: [LogEntry]? = nil,
-        deployment: DeploymentState? = nil
+        deployment: DeploymentState? = nil,
+        tools: [ServiceToolDefinition]? = nil,
+        toolResult: ServiceToolResult? = nil
     ) {
         self.command = command
         self.completedAt = completedAt
@@ -74,5 +84,7 @@ public struct CommandResult: Sendable, Hashable, Codable {
         self.statuses = statuses
         self.logs = logs
         self.deployment = deployment
+        self.tools = tools
+        self.toolResult = toolResult
     }
 }
