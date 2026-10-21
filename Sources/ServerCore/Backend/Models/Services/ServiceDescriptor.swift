@@ -35,6 +35,9 @@ public struct ServiceDescriptor: Sendable, Hashable, Codable, Identifiable {
     /// that keeps a deployment switch from being silent.
     public var deploysEnabled: Bool
 
+    /// Whether a separately configured local MCP endpoint offers actions. Absent on older Agents.
+    public var toolsEnabled: Bool?
+
     /// Creates a descriptor.
     ///
     /// - Parameters:
@@ -44,13 +47,15 @@ public struct ServiceDescriptor: Sendable, Hashable, Codable, Identifiable {
     ///   - unit: the systemd unit or process label, for display.
     ///   - repository: the GitHub repository releases come from, as `owner/name`.
     ///   - deploysEnabled: whether the agent may deploy releases of this service.
+    ///   - toolsEnabled: whether host-configured service actions are available.
     public init(
         id: ServiceID,
         displayName: String,
         backend: ServiceBackendKind,
         unit: String? = nil,
         repository: String? = nil,
-        deploysEnabled: Bool = false
+        deploysEnabled: Bool = false,
+        toolsEnabled: Bool? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -58,5 +63,6 @@ public struct ServiceDescriptor: Sendable, Hashable, Codable, Identifiable {
         self.unit = unit
         self.repository = repository
         self.deploysEnabled = deploysEnabled
+        self.toolsEnabled = toolsEnabled
     }
 }

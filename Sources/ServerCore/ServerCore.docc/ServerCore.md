@@ -181,3 +181,11 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``SQLQuery``
 - ``APIModel``
 - ``APIModelError``
+
+### Service actions
+
+- ``ToolJSONValue``
+- ``ServiceToolDefinition``
+- ``ServiceToolCall``
+- ``ServiceToolResult``
+- ``ToolFormSchema``

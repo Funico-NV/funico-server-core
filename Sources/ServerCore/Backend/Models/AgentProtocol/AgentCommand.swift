@@ -55,6 +55,13 @@ public enum AgentCommand: Sendable, Hashable {
     /// ID.
     case rollback(service: ServiceID, deployment: DeploymentID)
 
+    /// Discover the tools of a host-configured local MCP service. No caller-supplied endpoint.
+    case listTools(service: ServiceID)
+
+    /// Invoke a tool with its reviewed definition revision. Uses ordinary durable command semantics;
+    /// an interrupted running call is never automatically executed again.
+    case callTool(service: ServiceID, call: ServiceToolCall)
+
     /// Cancel a command that has not started yet, or a deployment that has not reached
     /// ``DeploymentStage/activating``. Refused otherwise: stopping halfway through an activation is
     /// what a rollback is for.
@@ -72,7 +79,8 @@ public enum AgentCommand: Sendable, Hashable {
              .queryLogs(let service, _),
              .followLogs(let service, _),
              .stopFollowingLogs(let service),
-             .rollback(let service, _):
+             .rollback(let service, _),
+             .listTools(let service), .callTool(let service, _):
             service
         case .deploy(let request): request.service
         case .listServices, .cancel, .unsupported: nil
@@ -83,11 +91,11 @@ public enum AgentCommand: Sendable, Hashable {
 extension AgentCommand: Codable {
 
     private enum CodingKeys: String, CodingKey {
-        case kind, service, operation, query, afterCursor, request, deployment, command
+        case kind, service, operation, query, afterCursor, request, deployment, command, call
     }
 
     private enum Kind: String {
-        case listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel
+        case listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel, listTools, callTool
     }
 
     /// Decodes the flat form. An unknown `kind` becomes ``unsupported(kind:)``.
@@ -129,6 +137,11 @@ extension AgentCommand: Codable {
                 service: try container.decode(ServiceID.self, forKey: .service),
                 deployment: try container.decode(DeploymentID.self, forKey: .deployment)
             )
+        case .listTools:
+            self = .listTools(service: try container.decode(ServiceID.self, forKey: .service))
+        case .callTool:
+            self = .callTool(service: try container.decode(ServiceID.self, forKey: .service),
+                             call: try container.decode(ServiceToolCall.self, forKey: .call))
         case .cancel:
             self = .cancel(try container.decode(CommandID.self, forKey: .command))
         }
@@ -165,6 +178,13 @@ extension AgentCommand: Codable {
             try container.encode(Kind.rollback.rawValue, forKey: .kind)
             try container.encode(service, forKey: .service)
             try container.encode(deployment, forKey: .deployment)
+        case .listTools(let service):
+            try container.encode(Kind.listTools.rawValue, forKey: .kind)
+            try container.encode(service, forKey: .service)
+        case .callTool(let service, let call):
+            try container.encode(Kind.callTool.rawValue, forKey: .kind)
+            try container.encode(service, forKey: .service)
+            try container.encode(call, forKey: .call)
         case .cancel(let command):
             try container.encode(Kind.cancel.rawValue, forKey: .kind)
             try container.encode(command, forKey: .command)
