@@ -158,13 +158,59 @@ let state = try await backend.status(of: "invoices").activeState   // .active
 swift-crypto. Their signatures are forgeable by design, and their keys carry an algorithm the real
 verifier refuses.
 
-**`ServerCoreLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerEventEnvelope`.
+**`ServerCoreLogging`** — `FNCLog`, `LogStorage`, `MemoryLogHandler`, `ServerLogInjector`, `ServerEventEnvelope`.
 Bootstrapping the handler is all a server needs to get a live log stream:
 
 ```swift
 let storage = LogStorage()
 LoggingSystem.bootstrap { _ in MemoryLogHandler(storage: storage) }
 ```
+
+### Service logging in Server Manager
+
+`ServerLogInjector` connects a service's swift-log calls to Server Manager. Bootstrap it **once,
+before creating loggers or the Vapor application**, replacing any existing logging bootstrap:
+
+```swift
+import Logging
+import ServerCoreLogging
+
+let logs = ServerLogInjector(capacity: 10_000, minimumLevel: .info)
+logs.bootstrap()
+
+let logger = Logger(label: "invoices")
+logger.info("Processing started", metadata: ["job": "sync", "batch": "2026-10"])
+logger.error("Processing failed", metadata: ["job": "sync"])
+```
+
+For Vapor, enable the `Vapor` package trait and pass the same buffer to the control channel:
+
+```swift
+import Vapor
+import ServerCoreVapor
+
+let app = try await Application.make(.detect())
+let control = try await app.enableAgentControl(version: "1.0.0", logs: logs.storage)
+// Keep `control` for the service lifetime; call `try await control?.shutdown()` on shutdown.
+```
+
+To inject into a component without changing global logging, use
+`let logger = logs.logger(label: "invoices", metadata: ["job": "sync"])` and pass that `Logger`
+to the component. The same approach works with `app.logger = logs.logger(label: "invoices")`;
+other loggers only participate if you bootstrap globally.
+
+Each record goes to a bounded in-process buffer and immediately to stdout as
+`<N>FNC_LOG:{...}`, with one JSON object per line. JSON preserves multiline messages and metadata;
+`N` is the syslog priority. Under systemd, use `StandardOutput=journal` and
+`SyslogLevelPrefix=yes` (the default), so journal priority filters also work. The Agent decodes
+these records for the existing Manager service log screen, including search, severity filtering,
+and live following. Ordinary stdout/stderr and malformed structured records remain readable.
+
+The updated Agent stores service history in its own **SQLite database**, with configurable
+`logs.retentionDays` per severity. On Linux it imports journald; on macOS it captures output from
+host-configured process services. Journald retention still controls how much history can be
+recovered after Agent downtime. The in-process buffer alone does not persist logs. Agent redaction
+applies before persistence and forwarding. See the Agent README for retention and process setup.
 
 **`ServerCoreVapor`** — `Application.exposeDocumentation`, and the agent control channel.
 
@@ -412,3 +458,11 @@ across the Agent channel. `ToolFormSchema` enforces the initial generated-form p
 arguments with explicit string enums, booleans or bounded numbers. Unknown constraints, free text,
 secret inputs, nested schemas and references are refused rather than weakened. An action carries
 its definition revision; interrupted running commands are not automatically executed again.
+
+### Managing service retention
+
+`LogRetentionSettings` is the complete eight-level retention policy exchanged over the Agent
+channel. `getLogRetention` reads a service's effective policy; `setLogRetention` saves and immediately
+applies an administrator override without changing the host allow-list. Values are days in
+0…3650; zero disables storage. Older Agents refuse these new commands explicitly. Date-bounded
+log queries use an inclusive start and exclusive end, so adjacent days never overlap.

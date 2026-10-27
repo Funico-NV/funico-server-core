@@ -110,6 +110,8 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``LogQuery``
 - ``LogPriority``
 - ``LogSource``
+- ``LogRetentionSettings``
+- ``LogRetentionManaging``
 
 ### Releases and deployments
 

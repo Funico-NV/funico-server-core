@@ -41,6 +41,9 @@ public struct CommandResult: Sendable, Hashable, Codable {
     /// A page of log entries, oldest first.
     public var logs: [LogEntry]?
 
+    /// Effective service log retention returned by retention commands.
+    public var logRetention: LogRetentionSettings?
+
     /// How a deployment or rollback ended. Set even when ``error`` is, so a failed deployment
     /// still says whether it was rolled back.
     public var deployment: DeploymentState?
@@ -63,6 +66,7 @@ public struct CommandResult: Sendable, Hashable, Codable {
     ///   - services: the services the host lists.
     ///   - statuses: service statuses.
     ///   - logs: a page of log entries.
+    ///   - logRetention: effective service retention settings.
     ///   - deployment: how a deployment or rollback ended.
     ///   - tools: discovered service definitions.
     ///   - toolResult: service-provided call result.
@@ -73,6 +77,7 @@ public struct CommandResult: Sendable, Hashable, Codable {
         services: [ServiceDescriptor]? = nil,
         statuses: [ServiceStatus]? = nil,
         logs: [LogEntry]? = nil,
+        logRetention: LogRetentionSettings? = nil,
         deployment: DeploymentState? = nil,
         tools: [ServiceToolDefinition]? = nil,
         toolResult: ServiceToolResult? = nil
@@ -83,6 +88,7 @@ public struct CommandResult: Sendable, Hashable, Codable {
         self.services = services
         self.statuses = statuses
         self.logs = logs
+        self.logRetention = logRetention
         self.deployment = deployment
         self.tools = tools
         self.toolResult = toolResult

@@ -23,6 +23,52 @@ for await log in storage.stream(replayingExisting: true) {
 }
 ```
 
+### Service logging in Server Manager
+
+`ServerLogInjector` connects a service's swift-log calls to Server Manager. Bootstrap it **once,
+before creating loggers or the Vapor application**, replacing any existing logging bootstrap:
+
+```swift
+import Logging
+import ServerCoreLogging
+
+let logs = ServerLogInjector(capacity: 10_000, minimumLevel: .info)
+logs.bootstrap()
+
+let logger = Logger(label: "invoices")
+logger.info("Processing started", metadata: ["job": "sync", "batch": "2026-10"])
+logger.error("Processing failed", metadata: ["job": "sync"])
+```
+
+For Vapor, enable the `Vapor` package trait and pass the same buffer to the control channel:
+
+```swift
+import Vapor
+import ServerCoreVapor
+
+let app = try await Application.make(.detect())
+let control = try await app.enableAgentControl(version: "1.0.0", logs: logs.storage)
+// Keep `control` for the service lifetime; call `try await control?.shutdown()` on shutdown.
+```
+
+To inject into a component without changing global logging, use
+`let logger = logs.logger(label: "invoices", metadata: ["job": "sync"])` and pass that `Logger`
+to the component. The same approach works with `app.logger = logs.logger(label: "invoices")`;
+other loggers only participate if you bootstrap globally.
+
+Each record goes to a bounded in-process buffer and immediately to stdout as
+`<N>FNC_LOG:{...}`, with one JSON object per line. JSON preserves multiline messages and metadata;
+`N` is the syslog priority. Under systemd, use `StandardOutput=journal` and
+`SyslogLevelPrefix=yes` (the default), so journal priority filters also work. The Agent decodes
+these records for the existing Manager service log screen, including search, severity filtering,
+and live following. Ordinary stdout/stderr and malformed structured records remain readable.
+
+The updated Agent stores service history in its own **SQLite database**, with configurable
+`logs.retentionDays` per severity. On Linux it imports journald; on macOS it captures output from
+host-configured process services. Journald retention still controls how much history can be
+recovered after Agent downtime. The in-process buffer alone does not persist logs. Agent redaction
+applies before persistence and forwarding. See the Agent README for retention and process setup.
+
 ### Why ``LogStorage`` is a class and not an actor
 
 `LogHandler.log(event:)` is synchronous. An actor forces every call site into `Task { await … }`,
@@ -84,6 +130,7 @@ let entry = LogEntry(record, service: "invoices")
 
 ### Logging
 
+- ``ServerLogInjector``
 - ``FNCLog``
 - ``LogStorage``
 - ``MemoryLogHandler``
