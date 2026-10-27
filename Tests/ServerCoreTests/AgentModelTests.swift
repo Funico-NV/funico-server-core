@@ -347,3 +347,16 @@ private let everyCommand: [AgentCommand] = [
     let event = try AgentProtocol.decoder.decode(AgentEvent.self, from: Data(#"{"kind":"thermal"}"#.utf8))
     #expect(event == .unsupported(kind: "thermal"))
 }
+
+@Test func retentionCommandsRoundTripAndRejectInvalidPolicies() throws {
+    let settings = try LogRetentionSettings()
+    for command in [AgentCommand.getLogRetention(service: "invoices"), .setLogRetention(service: "invoices", settings: settings)] {
+        let decoded = try AgentProtocol.decoder.decode(AgentCommand.self, from: AgentProtocol.encoder.encode(command))
+        #expect(decoded == command)
+        #expect(decoded.service == "invoices")
+    }
+    #expect(throws: ServerCoreError.self) { try LogRetentionSettings(retentionDays: ["error": 30]) }
+    var invalid = settings.retentionDays
+    invalid["error"] = -1
+    #expect(throws: ServerCoreError.self) { try LogRetentionSettings(retentionDays: invalid) }
+}

@@ -39,6 +39,12 @@ public enum AgentCommand: Sendable, Hashable {
     /// Read a page of a service's log. Answered with ``CommandResult/logs``.
     case queryLogs(service: ServiceID, query: LogQuery)
 
+    /// Read the effective per-service log retention policy.
+    case getLogRetention(service: ServiceID)
+
+    /// Persist and immediately apply a complete per-service retention policy.
+    case setLogRetention(service: ServiceID, settings: LogRetentionSettings)
+
     /// Stream a service's new log entries as ``AgentEvent/logs(_:)`` events, starting after
     /// `afterCursor`, or from now when it is `nil`. Continues until
     /// ``stopFollowingLogs(service:)`` or the connection drops; a reconnect does not resume it.
@@ -76,7 +82,7 @@ public enum AgentCommand: Sendable, Hashable {
         switch self {
         case .status(let service): service
         case .perform(_, let service),
-             .queryLogs(let service, _),
+             .queryLogs(let service, _), .getLogRetention(let service), .setLogRetention(let service, _),
              .followLogs(let service, _),
              .stopFollowingLogs(let service),
              .rollback(let service, _),
@@ -91,11 +97,11 @@ public enum AgentCommand: Sendable, Hashable {
 extension AgentCommand: Codable {
 
     private enum CodingKeys: String, CodingKey {
-        case kind, service, operation, query, afterCursor, request, deployment, command, call
+        case kind, service, operation, query, afterCursor, request, deployment, command, call, settings
     }
 
     private enum Kind: String {
-        case listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel, listTools, callTool
+        case getLogRetention, setLogRetention, listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel, listTools, callTool
     }
 
     /// Decodes the flat form. An unknown `kind` becomes ``unsupported(kind:)``.
@@ -123,6 +129,10 @@ extension AgentCommand: Codable {
                 service: try container.decode(ServiceID.self, forKey: .service),
                 query: try container.decodeIfPresent(LogQuery.self, forKey: .query) ?? LogQuery()
             )
+        case .getLogRetention:
+            self = .getLogRetention(service: try container.decode(ServiceID.self, forKey: .service))
+        case .setLogRetention:
+            self = .setLogRetention(service: try container.decode(ServiceID.self, forKey: .service), settings: try container.decode(LogRetentionSettings.self, forKey: .settings))
         case .followLogs:
             self = .followLogs(
                 service: try container.decode(ServiceID.self, forKey: .service),
@@ -164,6 +174,13 @@ extension AgentCommand: Codable {
             try container.encode(Kind.queryLogs.rawValue, forKey: .kind)
             try container.encode(service, forKey: .service)
             try container.encode(query, forKey: .query)
+        case .getLogRetention(let service):
+            try container.encode(Kind.getLogRetention.rawValue, forKey: .kind)
+            try container.encode(service, forKey: .service)
+        case .setLogRetention(let service, let settings):
+            try container.encode(Kind.setLogRetention.rawValue, forKey: .kind)
+            try container.encode(service, forKey: .service)
+            try container.encode(settings, forKey: .settings)
         case .followLogs(let service, let afterCursor):
             try container.encode(Kind.followLogs.rawValue, forKey: .kind)
             try container.encode(service, forKey: .service)

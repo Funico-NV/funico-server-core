@@ -273,3 +273,31 @@ private func makeLog(_ message: String, level: Logger.Level = .info) -> FNCLog {
     #expect(abs(entry.timestamp.timeIntervalSince(written)) < 0.001)
     #expect(LogPriority(Logger.Level.critical) == .critical)
 }
+
+// MARK: - Service injection
+
+@Test func injectedLoggersShareABoundedBufferAndRespectTheMinimumLevel() {
+    let logs = ServerLogInjector(capacity: 2, minimumLevel: .warning, echoesToStandardOutput: false)
+    let first = logs.logger(label: "invoices", metadata: ["job": "sync"])
+    let second = logs.logger(label: "database")
+    first.info("filtered")
+    first.warning("oldest")
+    second.error("database unavailable")
+    first.critical("sync failed", metadata: ["request": "123"])
+
+    let records = logs.storage.all()
+    #expect(records.map(\.message.description) == ["database unavailable", "sync failed"])
+    #expect(records[0].metadata?["logger"] == "database")
+    #expect(records[1].metadata?["job"] == "sync")
+    #expect(records[1].metadata?["request"] == "123")
+}
+
+@Test func structuredStdoutPreservesPriorityAndEscapesMultilineMessages() throws {
+    let record = makeLog("first\nsecond", level: .error)
+    let line = try MemoryLogHandler.structuredLine(record)
+    #expect(line.hasPrefix("<3>FNC_LOG:"))
+    #expect(!line.contains("\n"))
+    let decoded = try JSONDecoder().decode(FNCLog.self, from: Data(line.dropFirst(11).utf8))
+    #expect(decoded.message.description == "first\nsecond")
+    #expect(decoded.level == .error)
+}
