@@ -466,3 +466,25 @@ channel. `getLogRetention` reads a service's effective policy; `setLogRetention`
 applies an administrator override without changing the host allow-list. Values are days in
 0…3650; zero disables storage. Older Agents refuse these new commands explicitly. Date-bounded
 log queries use an inclusive start and exclusive end, so adjacent days never overlap.
+
+## Service definition contract
+
+`ServiceDefinition` is the strictly validated schema-1 `funico-service.json` shared by builders,
+Manager and Agent. It describes service/platform intent, a requested host-approved profile,
+readiness and typed environment metadata. It grants no host permissions and never carries secret
+values. Installation must load it from a verified signed release, not a mutable repository branch.
+
+```swift
+import Foundation
+import ServerCore
+
+let bytes = Data(#"{"schema":1,"service":"example","displayName":"Example","profile":"application","platforms":[{"os":"linux","arch":"x86_64","executable":"bin/Example"}]}"#.utf8)
+let definition = try ServiceDefinition.decode(bytes)
+print(definition.runtime(for: .linuxX86_64)?.executable ?? "Unsupported platform")
+```
+
+Validate in a builder checkout with `swift run funico-service-validate Packaging/Examples/funico-service.json`.
+Add `--manifest path/to/manifest.json` for agreement checks; signature/file-hash verification is still
+required separately. The example is a generic schema fixture, not a production Authentication
+configuration. See the DocC Service definitions article and `Packaging/service-definition.schema.json`.
+Host provisioning and protected configuration delivery are subsequent integration work.

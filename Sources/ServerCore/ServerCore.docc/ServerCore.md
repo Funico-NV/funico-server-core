@@ -113,6 +113,14 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``LogRetentionSettings``
 - ``LogRetentionManaging``
 
+### Service installation intent
+
+- <doc:ServiceDefinitions>
+- ``ServiceDefinition``
+- ``ServiceRuntimeDefinition``
+- ``ServiceEnvironmentDefinition``
+- ``ServiceReadinessDefinition``
+
 ### Releases and deployments
 
 - ``ReleaseInfo``

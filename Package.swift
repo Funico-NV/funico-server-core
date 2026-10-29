@@ -9,6 +9,7 @@ let package = Package(
         .iOS(.v17), .macOS(.v13), .tvOS(.v17), .visionOS(.v1), .watchOS(.v10)
     ],
     products: [
+        .executable(name: "funico-service-validate", targets: ["ServiceDefinitionValidator"]),
         .library(name: "ServerKit", targets: ["ServerKit"]),
         .library(name: "ServerCore", targets: ["ServerCore"]),
         .library(name: "ServerCoreLogging", targets: ["ServerCoreLogging"]),
@@ -45,6 +46,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-crypto.git", Version(3, 0, 0)..<Version(6, 0, 0))
     ],
     targets: [
+        .executableTarget(name: "ServiceDefinitionValidator", dependencies: ["ServerCore"]),
         .target(name: "ServerCore"),
         .target(name: "ServerCoreMCP", dependencies: [
             .product(name: "MCP", package: "swift-sdk", condition: .when(traits: ["MCP"]))
