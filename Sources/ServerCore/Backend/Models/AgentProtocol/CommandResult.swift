@@ -54,6 +54,12 @@ public struct CommandResult: Sendable, Hashable, Codable {
     /// The service's tool result, including domain refusals.
     public var toolResult: ServiceToolResult?
 
+    /// Host-approved candidates, separate from running service inventory.
+    public var installationCandidates: [ServiceInstallationCandidate]?
+
+    /// Review-only assessment; applySupported must remain false.
+    public var installationAssessment: ServiceInstallationAssessment?
+
     /// Whether the command succeeded.
     public var isSuccess: Bool { error == nil }
 
@@ -70,6 +76,8 @@ public struct CommandResult: Sendable, Hashable, Codable {
     ///   - deployment: how a deployment or rollback ended.
     ///   - tools: discovered service definitions.
     ///   - toolResult: service-provided call result.
+    ///   - installationCandidates: host-approved planning candidates.
+    ///   - installationAssessment: review-only host report.
     public init(
         command: CommandID,
         completedAt: Date = Date(),
@@ -80,7 +88,9 @@ public struct CommandResult: Sendable, Hashable, Codable {
         logRetention: LogRetentionSettings? = nil,
         deployment: DeploymentState? = nil,
         tools: [ServiceToolDefinition]? = nil,
-        toolResult: ServiceToolResult? = nil
+        toolResult: ServiceToolResult? = nil,
+        installationCandidates: [ServiceInstallationCandidate]? = nil,
+        installationAssessment: ServiceInstallationAssessment? = nil
     ) {
         self.command = command
         self.completedAt = completedAt
@@ -92,5 +102,7 @@ public struct CommandResult: Sendable, Hashable, Codable {
         self.deployment = deployment
         self.tools = tools
         self.toolResult = toolResult
+        self.installationCandidates = installationCandidates
+        self.installationAssessment = installationAssessment
     }
 }
