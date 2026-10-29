@@ -41,17 +41,17 @@ struct ServiceDefinitionTests {
     }
     @Test func unsupportedAndUnknownFieldsFailClosed() throws {
         let runtime = #"{"os":"linux","arch":"x86_64","executable":"bin/Example"}"#
-        for text in [
-            basic.replacingOccurrences(of: "\"schema\":1", with: "\"schema\":2"),
-            basic.replacingOccurrences(of: "\"profile\":\"application\"", with: "\"profile\":\"application\",\"installScript\":\"do something\""),
-            basic.replacingOccurrences(of: runtime, with: runtime.dropLast() + ",\"user\":\"root\"}"),
-            basic.replacingOccurrences(of: "\"linux\"", with: "\"windows\""),
-            basic.replacingOccurrences(of: "\"x86_64\"", with: "\"arm64\""),
-            basic.dropLast() + ",\"environment\":null}",
-            basic.dropLast() + ",\"readiness\":{\"port\":8080,\"path\":\"/health\",\"url\":\"https://remote.test\"}}",
-            basic.dropLast() + ",\"environment\":[{\"name\":\"TOKEN\",\"title\":\"Token\",\"type\":\"string\",\"required\":true}]}",
-            basic.dropLast() + ",\"environment\":[{\"name\":\"TOKEN\",\"title\":\"Token\",\"type\":\"string\",\"required\":true,\"secret\":true,\"value\":\"SECRET\"}]}"
-        ] { #expect(throws: ServerCoreError.self) { try decode(String(text)) } }
+        var invalidDocuments: [String] = []
+        invalidDocuments.append(basic.replacingOccurrences(of: "\"schema\":1", with: "\"schema\":2"))
+        invalidDocuments.append(basic.replacingOccurrences(of: "\"profile\":\"application\"", with: "\"profile\":\"application\",\"installScript\":\"do something\""))
+        invalidDocuments.append(basic.replacingOccurrences(of: runtime, with: String(runtime.dropLast()) + ",\"user\":\"root\"}"))
+        invalidDocuments.append(basic.replacingOccurrences(of: "\"linux\"", with: "\"windows\""))
+        invalidDocuments.append(basic.replacingOccurrences(of: "\"x86_64\"", with: "\"arm64\""))
+        invalidDocuments.append(String(basic.dropLast()) + ",\"environment\":null}")
+        invalidDocuments.append(String(basic.dropLast()) + ",\"readiness\":{\"port\":8080,\"path\":\"/health\",\"url\":\"https://remote.test\"}}")
+        invalidDocuments.append(String(basic.dropLast()) + ",\"environment\":[{\"name\":\"TOKEN\",\"title\":\"Token\",\"type\":\"string\",\"required\":true}]}")
+        invalidDocuments.append(String(basic.dropLast()) + ",\"environment\":[{\"name\":\"TOKEN\",\"title\":\"Token\",\"type\":\"string\",\"required\":true,\"secret\":true,\"value\":\"SECRET\"}]}")
+        for text in invalidDocuments { #expect(throws: ServerCoreError.self) { try decode(text) } }
     }
     @Test func duplicatePlatformsNamesAndOversizedDocumentsAreRefused() throws {
         let runtime = try ServiceRuntimeDefinition(os: .linux, arch: .x86_64, executable: "bin/Example")
