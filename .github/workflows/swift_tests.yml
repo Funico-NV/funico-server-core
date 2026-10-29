@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Test default products
         run: swift test -j 4
+      - name: Validate the service definition example
+        run: swift run -j 4 funico-service-validate Packaging/Examples/funico-service.json
       - name: Test the traits used by the Manager and agent
         run: swift test --traits Vapor,Crypto,MCP -j 4
   mcp-prototype:

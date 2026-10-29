@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "service": "example",
+  "displayName": "Example service",
+  "profile": "application",
+  "platforms": [
+    {
+      "os": "linux",
+      "arch": "x86_64",
+      "executable": "bin/Example",
+      "arguments": [
+        "serve",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        "8080"
+      ]
+    }
+  ],
+  "requiresMigration": false,
+  "readiness": {
+    "port": 8080,
+    "path": "/health",
+    "timeoutSeconds": 60,
+    "stableSeconds": 10
+  },
+  "environment": [
+    {
+      "name": "PUBLIC_URL",
+      "title": "Public endpoint",
+      "type": "url",
+      "required": true,
+      "secret": false
+    },
+    {
+      "name": "LOG_LEVEL",
+      "title": "Log level",
+      "type": "string",
+      "required": false,
+      "secret": false,
+      "defaultValue": "info",
+      "choices": [
+        "debug",
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    {
+      "name": "API_TOKEN",
+      "title": "Upstream API token",
+      "type": "string",
+      "required": true,
+      "secret": true
+    }
+  ]
+}
