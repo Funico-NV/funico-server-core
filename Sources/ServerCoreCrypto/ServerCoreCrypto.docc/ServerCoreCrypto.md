@@ -67,3 +67,11 @@ Manager by mistake.
 
 - ``Ed25519AgentSigner``
 - ``Ed25519AgentSignatureVerifier``
+
+### Configuration delivery
+
+- ``ConfigurationEnvelopeCrypto``
+
+RFC 9180 HPKE ciphertext keeps setting values out of durable command journals. Recipient keys are
+Agent-process scoped and must arrive over the enrolled control channel; base mode is not sender
+authentication. This API requires macOS 14/iOS 17 or Linux. See ServerCore’s ProtectedConfiguration article.

@@ -34,7 +34,7 @@ let package = Package(
         .trait(name: "Vapor", description: "Enables ServerCoreVapor and Vapor integrations."),
         .trait(
             name: "Crypto",
-            description: "Enables ServerCoreCrypto: Ed25519 agent signing and verification with swift-crypto."
+            description: "Enables ServerCoreCrypto: Ed25519 identity and HPKE configuration delivery with swift-crypto."
         )
     ],
     dependencies: [

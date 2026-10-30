@@ -502,3 +502,19 @@ import ServerCore
 let candidateCommand = AgentCommand.listInstallationCandidates
 let candidateResult = CommandResult(command: CommandID(), installationCandidates: [])
 ```
+
+## Write-only configuration protocol
+
+`getServiceConfiguration` returns classification/presence and an ephemeral public encryption key;
+`updateServiceConfiguration` carries only HPKE ciphertext bound to the operation, host, service,
+revision, key and expiry. Saving never restarts a service. Secret/plaintext patches must never be
+placed in commands or journals. `ServerCoreCrypto.ConfigurationEnvelopeCrypto` provides standard
+RFC 9180 encryption behind the Crypto trait. See the ProtectedConfiguration DocC article.
+
+```swift
+import ServerCore
+
+func configurationCommand(_ sealed: SealedServiceConfiguration) -> AgentCommand {
+    .updateServiceConfiguration(sealed)
+}
+```
