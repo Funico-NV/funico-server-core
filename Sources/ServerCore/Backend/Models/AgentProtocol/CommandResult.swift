@@ -60,6 +60,12 @@ public struct CommandResult: Sendable, Hashable, Codable {
     /// Review-only assessment; applySupported must remain false.
     public var installationAssessment: ServiceInstallationAssessment?
 
+    /// Configuration metadata contains no current values or defaults.
+    public var configuration: ServiceConfigurationSnapshot?
+
+    /// Saved configuration metadata; no implicit restart.
+    public var configurationReceipt: ServiceConfigurationReceipt?
+
     /// Whether the command succeeded.
     public var isSuccess: Bool { error == nil }
 
@@ -78,6 +84,8 @@ public struct CommandResult: Sendable, Hashable, Codable {
     ///   - toolResult: service-provided call result.
     ///   - installationCandidates: host-approved planning candidates.
     ///   - installationAssessment: review-only host report.
+    ///   - configuration: write-only configuration metadata.
+    ///   - configurationReceipt: metadata for a completed save.
     public init(
         command: CommandID,
         completedAt: Date = Date(),
@@ -90,7 +98,9 @@ public struct CommandResult: Sendable, Hashable, Codable {
         tools: [ServiceToolDefinition]? = nil,
         toolResult: ServiceToolResult? = nil,
         installationCandidates: [ServiceInstallationCandidate]? = nil,
-        installationAssessment: ServiceInstallationAssessment? = nil
+        installationAssessment: ServiceInstallationAssessment? = nil,
+        configuration: ServiceConfigurationSnapshot? = nil,
+        configurationReceipt: ServiceConfigurationReceipt? = nil
     ) {
         self.command = command
         self.completedAt = completedAt
@@ -104,5 +114,6 @@ public struct CommandResult: Sendable, Hashable, Codable {
         self.toolResult = toolResult
         self.installationCandidates = installationCandidates
         self.installationAssessment = installationAssessment
+        self.configuration = configuration; self.configurationReceipt = configurationReceipt
     }
 }

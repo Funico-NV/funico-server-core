@@ -29,6 +29,12 @@ public enum AgentCommand: Sendable, Hashable {
     /// Describe every service the host lists. Answered with ``CommandResult/services``.
     case listServices
 
+    /// Reads write-only configuration metadata and an ephemeral encryption key.
+    case getServiceConfiguration(service: ServiceID)
+
+    /// Saves encrypted, host-approved changes without restarting a service.
+    case updateServiceConfiguration(SealedServiceConfiguration)
+
     /// Read host-approved installation candidates, separate from runtime services.
     case listInstallationCandidates
 
@@ -94,6 +100,8 @@ public enum AgentCommand: Sendable, Hashable {
              .rollback(let service, _),
              .listTools(let service), .callTool(let service, _):
             service
+        case .getServiceConfiguration(let service): service
+        case .updateServiceConfiguration(let request): request.context.service
         case .planInstallation(let request): request.service
         case .deploy(let request): request.service
         case .listServices, .listInstallationCandidates, .cancel, .unsupported: nil
@@ -108,7 +116,7 @@ extension AgentCommand: Codable {
     }
 
     private enum Kind: String {
-        case listInstallationCandidates, planInstallation, getLogRetention, setLogRetention, listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel, listTools, callTool
+        case getServiceConfiguration, updateServiceConfiguration, listInstallationCandidates, planInstallation, getLogRetention, setLogRetention, listServices, status, perform, queryLogs, followLogs, stopFollowingLogs, deploy, rollback, cancel, listTools, callTool
     }
 
     /// Decodes the flat form. An unknown `kind` becomes ``unsupported(kind:)``.
@@ -122,6 +130,8 @@ extension AgentCommand: Codable {
         }
 
         switch kind {
+        case .getServiceConfiguration: self = .getServiceConfiguration(service: try container.decode(ServiceID.self, forKey: .service))
+        case .updateServiceConfiguration: self = .updateServiceConfiguration(try container.decode(SealedServiceConfiguration.self, forKey: .request))
         case .listInstallationCandidates: self = .listInstallationCandidates
         case .planInstallation: self = .planInstallation(try container.decode(InstallationPlanRequest.self, forKey: .request))
         case .listServices:
@@ -170,6 +180,12 @@ extension AgentCommand: Codable {
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
+        case .getServiceConfiguration(let service):
+            try container.encode(Kind.getServiceConfiguration.rawValue, forKey: .kind)
+            try container.encode(service, forKey: .service)
+        case .updateServiceConfiguration(let request):
+            try container.encode(Kind.updateServiceConfiguration.rawValue, forKey: .kind)
+            try container.encode(request, forKey: .request)
         case .listInstallationCandidates:
             try container.encode(Kind.listInstallationCandidates.rawValue, forKey: .kind)
         case .planInstallation(let request):

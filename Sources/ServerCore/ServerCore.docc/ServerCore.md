@@ -206,3 +206,12 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``ServiceInstallationCandidate``
 - ``InstallationPlanRequest``
 - ``ServiceInstallationAssessment``
+
+### Protected configuration
+
+- <doc:ProtectedConfiguration>
+- ``ServiceConfigurationPatch``
+- ``ConfigurationEnvelopeContext``
+- ``SealedServiceConfiguration``
+- ``ServiceConfigurationSnapshot``
+- ``ServiceConfigurationReceipt``
