@@ -199,3 +199,10 @@ new traffic uses `ServerEventEnvelope` in `ServerCoreLogging`.
 - ``ServiceToolCall``
 - ``ServiceToolResult``
 - ``ToolFormSchema``
+
+### Installation assessments
+
+- <doc:InstallationAssessments>
+- ``ServiceInstallationCandidate``
+- ``InstallationPlanRequest``
+- ``ServiceInstallationAssessment``

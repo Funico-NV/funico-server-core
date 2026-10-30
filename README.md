@@ -488,3 +488,17 @@ Add `--manifest path/to/manifest.json` for agreement checks; signature/file-hash
 required separately. The example is a generic schema fixture, not a production Authentication
 configuration. See the DocC Service definitions article and `Packaging/service-definition.schema.json`.
 Host provisioning and protected configuration delivery are subsequent integration work.
+
+## Remote installation assessment wire models
+
+`ServiceInstallationCandidate` is host-owned planning authority, separate from runtime service
+inventory. `InstallationPlanRequest` supplies release identity and scoped Manager artifact URLs;
+paths, units, accounts, values and trust anchors remain host-local. `ServiceInstallationAssessment`
+is a bounded portable report that refuses apply-capable payloads. Unknown commands remain unsupported.
+
+```swift
+import ServerCore
+
+let candidateCommand = AgentCommand.listInstallationCandidates
+let candidateResult = CommandResult(command: CommandID(), installationCandidates: [])
+```
