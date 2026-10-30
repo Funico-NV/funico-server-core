@@ -22,6 +22,7 @@ struct ConfigurationEnvelopeTests {
         let encoded = try JSONEncoder().encode(command)
         #expect(!String(decoding: encoded, as: UTF8.self).contains("very-private-marker"))
         #expect(String(describing: patch) == "ServiceConfigurationPatch(<redacted>)")
+        #expect(!String(reflecting: patch.changes[0]).contains("very-private-marker"))
         #expect(try JSONDecoder().decode(AgentCommand.self, from: encoded) == command)
         #expect(try JSONDecoder().decode(CommandResult.self, from: Data(#"{"command":"legacy","completedAt":0}"#.utf8)).configuration == nil)
     }

@@ -5,7 +5,7 @@ public struct ServiceConfigurationPatch: Sendable, Codable, CustomStringConverti
     /// Explicit mutations: omitted keys keep their existing values, including secrets.
     public let changes: [Change]
     /// One typed mutation; remove is explicit and an empty text field never means deletion.
-    public struct Change: Sendable, Codable {
+    public struct Change: Sendable, Codable, CustomStringConvertible, CustomDebugStringConvertible {
         /// A name approved by the host's configuration policy.
         public let name: String
         /// The only permitted mutations.
@@ -16,6 +16,10 @@ public struct ServiceConfigurationPatch: Sendable, Codable, CustomStringConverti
         public let value: String?
         /// Creates one explicit mutation; validation happens before encryption and again on the host.
         public init(name: String, action: Action, value: String? = nil) { self.name = name; self.action = action; self.value = value }
+        /// Individual mutations are redacted too, even when logged separately from their patch.
+        public var description: String { "ServiceConfigurationChange(<redacted>)" }
+        /// Debug output never expands the write-only value.
+        public var debugDescription: String { description }
     }
     /// Creates an in-memory patch; never persist this plaintext value.
     public init(changes: [Change]) { self.changes = changes }
