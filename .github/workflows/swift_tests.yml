@@ -10,8 +10,9 @@ permissions:
   contents: read
 jobs:
   tests:
-    runs-on: ubuntu-24.04
-    container: swift:6.2-noble
+    runs-on: ${{ vars.FUNICO_RUNNER || 'ubuntu-24.04' }}
+    # Only the GitHub-hosted fallback needs the Swift image; the Mac's VM already has Swift 6.2.
+    container: ${{ vars.FUNICO_RUNNER && '' || 'swift:6.2-noble' }}
     steps:
       - uses: actions/checkout@v4
       - name: Test default products
