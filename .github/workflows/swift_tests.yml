@@ -10,9 +10,7 @@ permissions:
   contents: read
 jobs:
   tests:
-    runs-on: ${{ vars.FUNICO_RUNNER || 'ubuntu-24.04' }}
-    # Only the GitHub-hosted fallback needs the Swift image; the Mac's VM already has Swift 6.2.
-    container: ${{ !vars.FUNICO_RUNNER && 'swift:6.2-noble' || '' }}
+    runs-on: [self-hosted, funico-mini]
     steps:
       - uses: actions/checkout@v4
       - name: Test default products
@@ -22,13 +20,14 @@ jobs:
       - name: Test the traits used by the Manager and agent
         run: swift test --traits Vapor,Crypto,MCP -j 4
   mcp-prototype:
-    runs-on: ubuntu-24.04
-    container: swift:6.3-noble
+    runs-on: [self-hosted, funico-mini]
     defaults:
       run:
         working-directory: Dev/MCPTooling
     steps:
       - uses: actions/checkout@v4
+      - name: Use Swift 6.3
+        run: swiftly use --global-default 6.3 && swift --version
       - name: Test the pinned official SDK integration
         run: swift test --disable-automatic-resolution -j 2
       - name: Run the isolated discovery and call demo
